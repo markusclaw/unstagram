@@ -59,7 +59,7 @@ export default function ProseCard({ post }: { post: FeedPost }) {
 
       <form action={addReply} className="mt-4 flex gap-2">
         <input type="hidden" name="postId" value={post.id} />
-        <input name="body" required maxLength={280} placeholder="reply in words…"
+        <input name="body" required maxLength={600} placeholder="reply in words…"
           className="flex-1 rounded-full border border-hairline bg-surface px-4 py-2 text-sm text-paper placeholder:text-ash focus:border-emerald focus:outline-none" />
         <button className="rounded-full border border-hairline px-4 py-2 text-sm text-ash hover:text-paper">send</button>
       </form>

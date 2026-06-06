@@ -70,7 +70,7 @@ export default function Composer() {
     <div className="py-4">
       <h1 className="mb-2 text-2xl font-bold">Post something</h1>
       <p className="mb-8 text-sm text-ash">
-        Pick a photo. We turn it into one sharp line. The picture is never shown — and never stored.
+        Pick a photo. We turn it into a few vivid sentences. The picture is never shown — and never stored.
       </p>
 
       {err && <p className="mb-4 rounded-md border border-hairline bg-surface px-3 py-2 text-sm text-paper">{err}</p>}
@@ -87,7 +87,7 @@ export default function Composer() {
 
       {(stage === "review" || stage === "posting") && (
         <div>
-          <p className="mb-2 text-xs uppercase tracking-wide text-ash">how it reads ({prose.length}/280)</p>
+          <p className="mb-2 text-xs uppercase tracking-wide text-ash">how it reads ({prose.length}/600)</p>
           <p className="prose-body rounded-lg border border-hairline bg-surface p-5">{prose}</p>
 
           <div className="mt-4">

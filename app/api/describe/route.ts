@@ -13,13 +13,13 @@ const PROVIDER = (process.env.PROSE_PROVIDER || "gemini").toLowerCase() as Provi
 const ALLOWED = ["image/jpeg", "image/png", "image/webp", "image/gif"];
 const MAX_BYTES = 10 * 1024 * 1024;
 
-const MAX_CHARS = 280;
+const MAX_CHARS = 600;
 
 const PROMPT = `You are the voice of UNSTAGRAM, where photos are never shown — only described.
-Describe this image in ONE punchy, vivid line of AT MOST 280 characters.
-Make every word count: capture the mood and one telling detail, a little wry and warm.
+Describe this image in 3–5 vivid sentences, roughly 400–600 characters. Use the space.
+Capture the light, the mood, the texture, and a few telling details — a little wry and warm.
 No hashtags, no quotes, no emoji. Do not mention that this is a photo or image.
-Write it like a sharp caption someone would screenshot.`;
+Write it like an evocative caption someone would screenshot.`;
 
 type Result = { prose?: string; error?: string; status?: number };
 

@@ -4,7 +4,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 
-const MAX_CHARS = 280;
+const MAX_CHARS = 600;
 
 export async function createPost(prose: string, location?: string) {
   const supabase = await createClient();
