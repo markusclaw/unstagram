@@ -17,10 +17,10 @@ const MAX_BYTES = 10 * 1024 * 1024;
 const MAX_CHARS = 1080;
 
 const PROMPT = `You are the voice of UNSTAGRAM, where photos are never shown — only described.
-Describe this image richly in roughly 800–1080 characters (about 6–9 sentences). Use the full space.
-Capture the light, the mood, the textures, the spatial details, and several small telling specifics — wry and warm.
-No hashtags, no quotes, no emoji. Do not mention that this is a photo or image.
-Write it like an immersive, high-resolution description someone could stand inside.`;
+Describe this image in evocative, atmospheric prose — wry and warm.
+Write as much or as little as the image truly deserves: let a simple shot be a sentence or two, and a rich, layered scene run longer (up to about 1080 characters). Never pad to fill space — length should follow the image, not a quota.
+Capture the light, mood, texture, and the telling details that matter.
+No hashtags, no quotes, no emoji. Do not mention that this is a photo or image.`;
 
 type Result = { prose?: string; error?: string; status?: number };
 
