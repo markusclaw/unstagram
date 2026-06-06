@@ -46,6 +46,15 @@ export default function StoriesClient({ groups, canAdd }: { groups: StoryGroup[]
     if (vi + 1 >= view.lines.length) setView(null);
     else setVi(vi + 1);
   }
+  function back() {
+    setVi((i) => Math.max(0, i - 1));
+  }
+  function onTap(e: React.MouseEvent<HTMLDivElement>) {
+    // left third = back, rest = forward
+    const x = e.clientX - e.currentTarget.getBoundingClientRect().left;
+    if (x < e.currentTarget.clientWidth / 3) back();
+    else advance();
+  }
 
   async function submit() {
     if (!text.trim() || busy) return;
@@ -106,7 +115,7 @@ export default function StoriesClient({ groups, canAdd }: { groups: StoryGroup[]
       )}
 
       {view && (
-        <div className="fixed inset-0 z-50 flex flex-col bg-ink/95" onClick={advance}>
+        <div className="fixed inset-0 z-50 flex flex-col bg-ink/95" onClick={onTap}>
           {/* progress segments */}
           <div className="flex gap-1 px-3 pt-3">
             {view.lines.map((_, j) => (
@@ -131,7 +140,7 @@ export default function StoriesClient({ groups, canAdd }: { groups: StoryGroup[]
             <p dir="auto" className="prose-body max-w-reading text-2xl leading-relaxed">{view.lines[vi]}</p>
           </div>
 
-          <p className="pb-8 text-center text-xs text-ash">tap for next</p>
+          <p className="pb-8 text-center text-xs text-ash">tap right for next · left to go back</p>
         </div>
       )}
     </>
