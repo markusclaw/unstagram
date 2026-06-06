@@ -50,7 +50,7 @@ export default async function Sidebar() {
         ))}
       </nav>
       <p className="mt-auto hidden px-2 text-[11px] leading-relaxed text-ash xl:block">
-        no algorithm.<br />no metrics.<br />no pictures.
+        no algorithm.<br />chronological.<br />no pictures.
       </p>
     </aside>
   );

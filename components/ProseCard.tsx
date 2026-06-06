@@ -4,6 +4,16 @@ import { timeAgo } from "@/lib/format";
 import EngagementBar from "./EngagementBar";
 import { addReply } from "@/app/post/actions";
 
+function PinIcon() {
+  return (
+    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="inline-block -mt-0.5">
+      <path d="M12 21s-7-6.3-7-11a7 7 0 0 1 14 0c0 4.7-7 11-7 11Z" />
+      <circle cx="12" cy="10" r="2.5" />
+    </svg>
+  );
+}
+
 export default function ProseCard({ post }: { post: FeedPost }) {
   return (
     <article className="border-b border-hairline py-8">
@@ -21,7 +31,20 @@ export default function ProseCard({ post }: { post: FeedPost }) {
       {/* where the photo would be. there is no photo. that's the post. */}
       <p className="prose-body">{post.prose}</p>
 
-      <EngagementBar replyCount={post.replies.length} />
+      {post.location && (
+        <p className="mt-2 text-xs text-ash">
+          <PinIcon /> {post.location}
+        </p>
+      )}
+
+      <EngagementBar
+        postId={post.id}
+        likeCount={post.likeCount}
+        repostCount={post.repostCount}
+        replyCount={post.replies.length}
+        liked={post.liked}
+        reposted={post.reposted}
+      />
 
       {post.replies.length > 0 && (
         <ul className="mt-4 space-y-3 border-l border-hairline pl-4">
@@ -36,15 +59,9 @@ export default function ProseCard({ post }: { post: FeedPost }) {
 
       <form action={addReply} className="mt-4 flex gap-2">
         <input type="hidden" name="postId" value={post.id} />
-        <input
-          name="body"
-          required
-          placeholder="reply in words…"
-          className="flex-1 rounded-full border border-hairline bg-surface px-4 py-2 text-sm text-paper placeholder:text-ash focus:border-emerald focus:outline-none"
-        />
-        <button className="rounded-full border border-hairline px-4 py-2 text-sm text-ash hover:text-paper">
-          send
-        </button>
+        <input name="body" required maxLength={280} placeholder="reply in words…"
+          className="flex-1 rounded-full border border-hairline bg-surface px-4 py-2 text-sm text-paper placeholder:text-ash focus:border-emerald focus:outline-none" />
+        <button className="rounded-full border border-hairline px-4 py-2 text-sm text-ash hover:text-paper">send</button>
       </form>
     </article>
   );

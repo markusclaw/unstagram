@@ -13,11 +13,13 @@ const PROVIDER = (process.env.PROSE_PROVIDER || "gemini").toLowerCase() as Provi
 const ALLOWED = ["image/jpeg", "image/png", "image/webp", "image/gif"];
 const MAX_BYTES = 10 * 1024 * 1024;
 
+const MAX_CHARS = 280;
+
 const PROMPT = `You are the voice of UNSTAGRAM, where photos are never shown — only described.
-Write 150–300 words of evocative, atmospheric prose describing this image.
-Capture light, mood, texture, and small telling details. Be a little wry and warm.
-Do not mention that this is a photo or image. Do not start with "This is" or "The image".
-Just describe the moment as if the reader is standing inside it.`;
+Describe this image in ONE punchy, vivid line of AT MOST 280 characters.
+Make every word count: capture the mood and one telling detail, a little wry and warm.
+No hashtags, no quotes, no emoji. Do not mention that this is a photo or image.
+Write it like a sharp caption someone would screenshot.`;
 
 type Result = { prose?: string; error?: string; status?: number };
 
@@ -95,6 +97,15 @@ async function viaAnthropic(mediaType: string, base64: string): Promise<Result> 
   return { prose: (data?.content?.[0]?.text ?? "").trim() };
 }
 
+// Guarantee the cap even if the model overshoots — trim at a word boundary.
+function capChars(text: string, max: number): string {
+  const t = text.replace(/\s+/g, " ").trim();
+  if (t.length <= max) return t;
+  const cut = t.slice(0, max);
+  const lastSpace = cut.lastIndexOf(" ");
+  return (lastSpace > max * 0.6 ? cut.slice(0, lastSpace) : cut).replace(/[.,;:\-]+$/, "") + "…";
+}
+
 export async function POST(req: Request) {
   let file: File | null = null;
   try {
@@ -123,5 +134,5 @@ export async function POST(req: Request) {
   // Image is now out of scope and discarded. Nothing is persisted here.
   if (error) return NextResponse.json({ error }, { status: status ?? 502 });
   if (!prose) return NextResponse.json({ error: "Empty description returned." }, { status: 502 });
-  return NextResponse.json({ prose });
+  return NextResponse.json({ prose: capChars(prose, MAX_CHARS) });
 }
