@@ -274,6 +274,41 @@ export async function markActivitySeen(): Promise<void> {
   await supabase.from("profiles").update({ activity_seen_at: new Date().toISOString() }).eq("id", user.id);
 }
 
+function safeLike(q: string): string {
+  return q.replace(/[%,()*]/g, " ").trim();
+}
+
+export async function searchProfiles(q: string): Promise<{ username: string; displayName: string | null }[]> {
+  const safe = safeLike(q);
+  if (!safe) return [];
+  const supabase = await createClient();
+  const { data } = await supabase
+    .from("profiles")
+    .select("username, display_name")
+    .or(`username.ilike.%${safe}%,display_name.ilike.%${safe}%`)
+    .limit(20);
+  return (data ?? []).map((p: any) => ({ username: p.username, displayName: p.display_name }));
+}
+
+export async function searchPosts(q: string): Promise<FeedPost[]> {
+  const safe = safeLike(q);
+  if (!safe) return [];
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  const { data, error } = await supabase
+    .from("posts")
+    .select(POST_SELECT)
+    .or(`prose.ilike.%${safe}%,location.ilike.%${safe}%`)
+    .order("created_at", { ascending: false })
+    .limit(50);
+  if (error) console.error("searchPosts error:", error.message);
+  if (!data) return [];
+  const t = await tally(data.map((r: any) => r.id), user?.id);
+  return data.map((r: any) => mapPost(r, t));
+}
+
 export async function getCurrentProfile(): Promise<{ id: string; username: string; displayName: string | null; language: string } | null> {
   const supabase = await createClient();
   const {

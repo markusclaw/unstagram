@@ -41,11 +41,10 @@ export default function ProseCard({ post }: { post: FeedPost }) {
 
       <EngagementBar
         postId={post.id}
+        prose={post.prose}
         likeCount={post.likeCount}
-        repostCount={post.repostCount}
         replyCount={post.replies.length}
         liked={post.liked}
-        reposted={post.reposted}
       />
 
       {post.replies.length > 0 && (

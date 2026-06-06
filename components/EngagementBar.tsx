@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { toggleLike, toggleRepost } from "@/app/post/actions";
+import { toggleLike } from "@/app/post/actions";
 
 function Icon({ d, fill = "none" }: { d: string; fill?: string }) {
   return (
@@ -15,19 +15,18 @@ function Icon({ d, fill = "none" }: { d: string; fill?: string }) {
 const PATHS = {
   like: "M19.5 12.6 12 20l-7.5-7.4a4.6 4.6 0 0 1 6.5-6.5l1 1 1-1a4.6 4.6 0 0 1 6.5 6.5Z",
   comment: "M21 11.5a8.5 8.5 0 0 1-12.3 7.6L3 21l1.9-5.7A8.5 8.5 0 1 1 21 11.5Z",
-  share: "M17 1l4 4-4 4M3 11V9a4 4 0 0 1 4-4h14M7 23l-4-4 4-4M21 13v2a4 4 0 0 1-4 4H3",
+  share: "M22 2 11 13M22 2l-7 20-4-9-9-4 20-7Z",
 };
 
 export default function EngagementBar({
-  postId, likeCount, repostCount, replyCount, liked, reposted,
+  postId, prose, likeCount, replyCount, liked,
 }: {
-  postId: string; likeCount: number; repostCount: number; replyCount: number; liked: boolean; reposted: boolean;
+  postId: string; prose: string; likeCount: number; replyCount: number; liked: boolean;
 }) {
   const [l, setL] = useState(liked);
   const [lc, setLc] = useState(likeCount);
-  const [r, setR] = useState(reposted);
-  const [rc, setRc] = useState(repostCount);
   const [busy, setBusy] = useState(false);
+  const [copied, setCopied] = useState(false);
 
   async function like() {
     if (busy) return;
@@ -35,11 +34,19 @@ export default function EngagementBar({
     setL(!was); setLc(lc + (was ? -1 : 1)); setBusy(true);
     try { await toggleLike(postId, was); } catch { setL(was); setLc(lc); } finally { setBusy(false); }
   }
-  async function repost() {
-    if (busy) return;
-    const was = r;
-    setR(!was); setRc(rc + (was ? -1 : 1)); setBusy(true);
-    try { await toggleRepost(postId, was); } catch { setR(was); setRc(rc); } finally { setBusy(false); }
+
+  async function share() {
+    const url = `${window.location.origin}/p/${postId}`;
+    const text = prose.length > 140 ? prose.slice(0, 140) + "…" : prose;
+    if (navigator.share) {
+      try { await navigator.share({ title: "UNSTAGRAM", text, url }); } catch { /* cancelled */ }
+    } else {
+      try {
+        await navigator.clipboard.writeText(url);
+        setCopied(true);
+        setTimeout(() => setCopied(false), 2000);
+      } catch { /* ignore */ }
+    }
   }
 
   return (
@@ -55,10 +62,9 @@ export default function EngagementBar({
         <span>{replyCount}</span>
       </span>
 
-      <button onClick={repost} aria-label="share"
-        className={"flex items-center gap-1.5 transition hover:text-paper " + (r ? "text-emerald" : "")}>
+      <button onClick={share} aria-label="share" className="flex items-center gap-1.5 transition hover:text-paper">
         <Icon d={PATHS.share} />
-        <span>{rc}</span>
+        <span>{copied ? "link copied" : "share"}</span>
       </button>
     </div>
   );
