@@ -1,4 +1,4 @@
-import StoriesRow from "@/components/StoriesRow";
+import StoriesBar from "@/components/StoriesBar";
 import ProseCard from "@/components/ProseCard";
 import { getFeed } from "@/lib/db";
 
@@ -8,7 +8,7 @@ export default async function FeedPage() {
   const feed = await getFeed();
   return (
     <div>
-      <StoriesRow />
+      <StoriesBar />
       <div className="mb-2 flex items-baseline justify-between">
         <h1 className="text-2xl font-bold">Feed</h1>
         <span className="text-xs text-ash">chronological. always.</span>

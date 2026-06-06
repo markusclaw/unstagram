@@ -146,6 +146,40 @@ export async function getProfile(username: string): Promise<Profile | null> {
   };
 }
 
+
+export async function getPost(id: string): Promise<FeedPost | null> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  const { data, error } = await supabase.from("posts").select(POST_SELECT).eq("id", id).maybeSingle();
+  if (error) console.error("getPost error:", error.message);
+  if (!data) return null;
+  const t = await tally([data.id], user?.id);
+  return mapPost(data, t);
+}
+
+export type StoryGroup = { username: string; displayName: string | null; lines: string[] };
+
+export async function getActiveStories(): Promise<StoryGroup[]> {
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("stories")
+    .select("id, body, created_at, author:profiles!stories_author_fkey(username, display_name)")
+    .gt("expires_at", new Date().toISOString())
+    .order("created_at", { ascending: true });
+  if (error) console.error("getActiveStories error:", error.message);
+  if (!data) return [];
+  const map = new Map<string, StoryGroup>();
+  for (const row of data as any[]) {
+    const a = author(row.author);
+    const g = map.get(a.username) ?? { username: a.username, displayName: a.displayName, lines: [] };
+    g.lines.push(row.body);
+    map.set(a.username, g);
+  }
+  return Array.from(map.values());
+}
+
 export async function getCurrentProfile(): Promise<{ id: string; username: string; displayName: string | null } | null> {
   const supabase = await createClient();
   const {
