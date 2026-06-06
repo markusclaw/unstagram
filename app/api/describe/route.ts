@@ -14,13 +14,13 @@ const PROVIDER = (process.env.PROSE_PROVIDER || "gemini").toLowerCase() as Provi
 const ALLOWED = ["image/jpeg", "image/png", "image/webp", "image/gif", "image/heic", "image/heif"];
 const MAX_BYTES = 10 * 1024 * 1024;
 
-const MAX_CHARS = 720;
+const MAX_CHARS = 1080;
 
 const PROMPT = `You are the voice of UNSTAGRAM, where photos are never shown — only described.
-Describe this image in 4–6 vivid sentences, roughly 500–720 characters. Use the space.
-Capture the light, the mood, the texture, and several telling details — a little wry and warm.
+Describe this image richly in roughly 800–1080 characters (about 6–9 sentences). Use the full space.
+Capture the light, the mood, the textures, the spatial details, and several small telling specifics — wry and warm.
 No hashtags, no quotes, no emoji. Do not mention that this is a photo or image.
-Write it like an evocative caption someone would screenshot.`;
+Write it like an immersive, high-resolution description someone could stand inside.`;
 
 type Result = { prose?: string; error?: string; status?: number };
 

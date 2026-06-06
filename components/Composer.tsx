@@ -78,7 +78,7 @@ export default function Composer({ defaultLanguage = "en" }: { defaultLanguage?:
     <div className="py-4">
       <h1 className="mb-2 text-2xl font-bold">Post something</h1>
       <p className="mb-8 text-sm text-ash">
-        Pick a photo. We turn it into a few vivid sentences. The picture is never shown — and never stored.
+        Pick a photo. We turn it into a high-resolution description. The picture is never shown — and never stored.
       </p>
 
       <div className="mb-6 flex items-center gap-2 text-sm">
@@ -105,7 +105,7 @@ export default function Composer({ defaultLanguage = "en" }: { defaultLanguage?:
 
       {(stage === "review" || stage === "posting") && (
         <div>
-          <p className="mb-2 text-xs uppercase tracking-wide text-ash">how it reads ({prose.length}/720)</p>
+          <p className="mb-2 text-xs uppercase tracking-wide text-ash">how it reads ({prose.length}/1080)</p>
           <p className="prose-body rounded-lg border border-hairline bg-surface p-5">{prose}</p>
 
           <div className="mt-4">

@@ -241,6 +241,39 @@ export async function getActivity(): Promise<ActivityItem[]> {
   return items.slice(0, 60);
 }
 
+export async function getUnreadActivityCount(): Promise<number> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return 0;
+
+  const { data: prof } = await supabase.from("profiles").select("activity_seen_at").eq("id", user.id).maybeSingle();
+  const seen = prof?.activity_seen_at ?? "1970-01-01T00:00:00Z";
+
+  const { data: myPosts } = await supabase.from("posts").select("id").eq("author", user.id);
+  const ids = (myPosts ?? []).map((p: any) => p.id);
+  const head = { count: "exact" as const, head: true };
+  const zero = Promise.resolve({ count: 0 });
+
+  const [f, l, r, c] = await Promise.all([
+    supabase.from("follows").select("*", head).eq("following", user.id).gt("created_at", seen),
+    ids.length ? supabase.from("likes").select("*", head).in("post_id", ids).neq("user_id", user.id).gt("created_at", seen) : zero,
+    ids.length ? supabase.from("reposts").select("*", head).in("post_id", ids).neq("user_id", user.id).gt("created_at", seen) : zero,
+    ids.length ? supabase.from("comments").select("*", head).in("post_id", ids).neq("author", user.id).gt("created_at", seen) : zero,
+  ]);
+  return (f.count ?? 0) + (l.count ?? 0) + (r.count ?? 0) + (c.count ?? 0);
+}
+
+export async function markActivitySeen(): Promise<void> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return;
+  await supabase.from("profiles").update({ activity_seen_at: new Date().toISOString() }).eq("id", user.id);
+}
+
 export async function getCurrentProfile(): Promise<{ id: string; username: string; displayName: string | null; language: string } | null> {
   const supabase = await createClient();
   const {

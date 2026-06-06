@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { getActivity } from "@/lib/db";
+import { getActivity, markActivitySeen } from "@/lib/db";
 import { timeAgo } from "@/lib/format";
 
 export const dynamic = "force-dynamic";
@@ -13,6 +13,7 @@ const VERB: Record<string, string> = {
 
 export default async function NotificationsPage() {
   const items = await getActivity();
+  await markActivitySeen();
 
   return (
     <div className="py-2">

@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { getCurrentProfile } from "@/lib/db";
+import { getCurrentProfile, getUnreadActivityCount } from "@/lib/db";
 
 function Icon({ d }: { d: string }) {
   return (
@@ -23,6 +23,7 @@ const ICONS = {
 export default async function Sidebar() {
   const me = await getCurrentProfile();
   const profileHref = me ? `/u/${me.username}` : "/login";
+  const unread = me ? await getUnreadActivityCount() : 0;
 
   const NAV = [
     { href: "/", label: "Home", icon: ICONS.home },
@@ -44,7 +45,14 @@ export default async function Sidebar() {
         {NAV.map((item) => (
           <Link key={item.label} href={item.href}
             className="flex items-center gap-4 rounded-lg px-2 py-3 text-paper hover:bg-surface">
-            <Icon d={item.icon} />
+            <span className="relative">
+              <Icon d={item.icon} />
+              {item.label === "Notifications" && unread > 0 && (
+                <span className="absolute -right-2 -top-1.5 min-w-[16px] rounded-full bg-red-500 px-1 text-center text-[10px] font-bold leading-4 text-white">
+                  {unread > 9 ? "9+" : unread}
+                </span>
+              )}
+            </span>
             <span className="hidden text-[15px] xl:inline">{item.label}</span>
           </Link>
         ))}
