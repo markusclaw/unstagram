@@ -28,7 +28,7 @@ export default async function LoginPage({
       </form>
 
       <p className="mt-6 text-center text-sm text-ash">
-        invite only. got a code?{" "}
+        new here?{" "}
         <Link href="/signup" className="text-emerald hover:underline">sign up</Link>
       </p>
     </div>
