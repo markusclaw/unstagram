@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { languageName, normalizeLang } from "@/lib/languages";
 
 export const dynamic = "force-dynamic";
 
@@ -23,7 +24,7 @@ Write it like an evocative caption someone would screenshot.`;
 
 type Result = { prose?: string; error?: string; status?: number };
 
-async function viaGemini(mediaType: string, base64: string): Promise<Result> {
+async function viaGemini(prompt: string, mediaType: string, base64: string): Promise<Result> {
   const key = process.env.GEMINI_API_KEY;
   if (!key) return { error: "Missing GEMINI_API_KEY", status: 503 };
   const model = process.env.GEMINI_MODEL || "gemini-2.5-flash";
@@ -33,7 +34,7 @@ async function viaGemini(mediaType: string, base64: string): Promise<Result> {
       method: "POST",
       headers: { "x-goog-api-key": key, "content-type": "application/json" },
       body: JSON.stringify({
-        contents: [{ parts: [{ text: PROMPT }, { inline_data: { mime_type: mediaType, data: base64 } }] }],
+        contents: [{ parts: [{ text: prompt }, { inline_data: { mime_type: mediaType, data: base64 } }] }],
       }),
     },
   );
@@ -45,7 +46,7 @@ async function viaGemini(mediaType: string, base64: string): Promise<Result> {
   return { prose };
 }
 
-async function viaOpenAI(mediaType: string, base64: string): Promise<Result> {
+async function viaOpenAI(prompt: string, mediaType: string, base64: string): Promise<Result> {
   const key = process.env.OPENAI_API_KEY;
   if (!key) return { error: "Missing OPENAI_API_KEY", status: 503 };
   const model = process.env.OPENAI_MODEL || "gpt-4.1-mini";
@@ -59,7 +60,7 @@ async function viaOpenAI(mediaType: string, base64: string): Promise<Result> {
         {
           role: "user",
           content: [
-            { type: "text", text: PROMPT },
+            { type: "text", text: prompt },
             { type: "image_url", image_url: { url: `data:${mediaType};base64,${base64}` } },
           ],
         },
@@ -71,7 +72,7 @@ async function viaOpenAI(mediaType: string, base64: string): Promise<Result> {
   return { prose: (data?.choices?.[0]?.message?.content ?? "").trim() };
 }
 
-async function viaAnthropic(mediaType: string, base64: string): Promise<Result> {
+async function viaAnthropic(prompt: string, mediaType: string, base64: string): Promise<Result> {
   const key = process.env.ANTHROPIC_API_KEY;
   if (!key) return { error: "Missing ANTHROPIC_API_KEY", status: 503 };
   const model = process.env.ANTHROPIC_MODEL || "claude-haiku-4-5";
@@ -86,7 +87,7 @@ async function viaAnthropic(mediaType: string, base64: string): Promise<Result> 
           role: "user",
           content: [
             { type: "image", source: { type: "base64", media_type: mediaType, data: base64 } },
-            { type: "text", text: PROMPT },
+            { type: "text", text: prompt },
           ],
         },
       ],
@@ -108,9 +109,11 @@ function capChars(text: string, max: number): string {
 
 export async function POST(req: Request) {
   let file: File | null = null;
+  let lang = "en";
   try {
     const form = await req.formData();
     file = form.get("image") as File | null;
+    lang = String(form.get("lang") ?? "en");
   } catch {
     return NextResponse.json({ error: "Expected multipart form-data with an 'image' field." }, { status: 400 });
   }
@@ -128,8 +131,10 @@ export async function POST(req: Request) {
   for (let i = 0; i < arr.length; i++) binary += String.fromCharCode(arr[i]);
   const base64 = btoa(binary);
 
+  const langName = languageName(normalizeLang(lang));
+  const prompt = PROMPT + ` Write the entire description in ${langName}.`;
   const run = PROVIDER === "openai" ? viaOpenAI : PROVIDER === "anthropic" ? viaAnthropic : viaGemini;
-  const { prose, error, status } = await run(mediaType, base64);
+  const { prose, error, status } = await run(prompt, mediaType, base64);
 
   // Image is now out of scope and discarded. Nothing is persisted here.
   if (error) return NextResponse.json({ error }, { status: status ?? 502 });

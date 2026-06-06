@@ -1,6 +1,7 @@
 import Link from "next/link";
 import type { Metadata } from "next";
 import { signUp } from "@/app/auth/actions";
+import LanguageField from "@/components/LanguageField";
 
 export const metadata: Metadata = { title: "Sign up", description: "Create an UNSTAGRAM account — post a photo, your followers read the description." };
 
@@ -26,6 +27,10 @@ export default async function SignupPage({
           className="w-full rounded-lg border border-hairline bg-surface px-4 py-3 text-paper placeholder:text-ash focus:border-emerald focus:outline-none" />
         <input name="password" type="password" required minLength={6} placeholder="password (6+ chars)"
           className="w-full rounded-lg border border-hairline bg-surface px-4 py-3 text-paper placeholder:text-ash focus:border-emerald focus:outline-none" />
+        <div>
+          <label className="mb-1 block text-xs text-ash">preferred language for your posts</label>
+          <LanguageField name="language" />
+        </div>
         <button type="submit"
           className="w-full rounded-full bg-emerald px-5 py-3 text-sm font-semibold text-ink hover:opacity-90">
           create account

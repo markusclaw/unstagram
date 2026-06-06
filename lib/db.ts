@@ -19,6 +19,7 @@ export type Profile = {
   username: string;
   displayName: string | null;
   bio: string | null;
+  language: string;
   followerCount: number;
   followingCount: number;
   isFollowing: boolean;
@@ -121,7 +122,7 @@ export async function getProfile(username: string): Promise<Profile | null> {
   } = await supabase.auth.getUser();
   const { data } = await supabase
     .from("profiles")
-    .select("id, username, display_name, bio")
+    .select("id, username, display_name, bio, language")
     .eq("username", username)
     .maybeSingle();
   if (!data) return null;
@@ -139,6 +140,7 @@ export async function getProfile(username: string): Promise<Profile | null> {
     username: data.username,
     displayName: data.display_name,
     bio: data.bio,
+    language: data.language ?? "en",
     followerCount: followers ?? 0,
     followingCount: following ?? 0,
     isFollowing: !!(mine as any)?.data,
@@ -180,7 +182,7 @@ export async function getActiveStories(): Promise<StoryGroup[]> {
   return Array.from(map.values());
 }
 
-export async function getCurrentProfile(): Promise<{ id: string; username: string; displayName: string | null } | null> {
+export async function getCurrentProfile(): Promise<{ id: string; username: string; displayName: string | null; language: string } | null> {
   const supabase = await createClient();
   const {
     data: { user },
@@ -188,9 +190,9 @@ export async function getCurrentProfile(): Promise<{ id: string; username: strin
   if (!user) return null;
   const { data } = await supabase
     .from("profiles")
-    .select("id, username, display_name")
+    .select("id, username, display_name, language")
     .eq("id", user.id)
     .maybeSingle();
   if (!data) return null;
-  return { id: data.id, username: data.username, displayName: data.display_name };
+  return { id: data.id, username: data.username, displayName: data.display_name, language: data.language ?? "en" };
 }

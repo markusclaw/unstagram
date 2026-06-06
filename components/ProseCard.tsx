@@ -31,7 +31,7 @@ export default function ProseCard({ post }: { post: FeedPost }) {
       </div>
 
       {/* where the photo would be. there is no photo. that's the post. */}
-      <p className="prose-body">{post.prose}</p>
+      <p dir="auto" className="prose-body">{post.prose}</p>
 
       {post.location && (
         <p className="mt-2 text-xs text-ash">

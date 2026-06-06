@@ -25,7 +25,7 @@ export default async function ProfilePage({
             <p className="text-sm text-ash">@{profile.username}</p>
           </div>
           {profile.isMe ? (
-            <EditProfile username={profile.username} displayName={profile.displayName} bio={profile.bio} />
+            <EditProfile username={profile.username} displayName={profile.displayName} bio={profile.bio} language={profile.language} />
           ) : (
             <FollowButton targetId={profile.id} isFollowing={profile.isFollowing} followerCount={profile.followerCount} />
           )}

@@ -2,16 +2,18 @@
 
 import { useState } from "react";
 import { createPost } from "@/app/post/actions";
+import { LANGS } from "@/lib/languages";
 
 type Stage = "pick" | "thinking" | "review" | "posting";
 
-export default function Composer() {
+export default function Composer({ defaultLanguage = "en" }: { defaultLanguage?: string }) {
   const [stage, setStage] = useState<Stage>("pick");
   const [file, setFile] = useState<File | null>(null);
   const [prose, setProse] = useState("");
   const [location, setLocation] = useState("");
   const [geoBusy, setGeoBusy] = useState(false);
   const [err, setErr] = useState("");
+  const [lang, setLang] = useState(defaultLanguage);
 
   async function describe(f: File) {
     setErr("");
@@ -19,6 +21,7 @@ export default function Composer() {
     try {
       const fd = new FormData();
       fd.append("image", f);
+      fd.append("lang", lang);
       const res = await fetch("/api/describe", { method: "POST", body: fd });
       if (!res.ok) throw new Error((await res.json().catch(() => ({})))?.error || "describe failed");
       const { prose } = await res.json();
@@ -77,6 +80,16 @@ export default function Composer() {
       <p className="mb-8 text-sm text-ash">
         Pick a photo. We turn it into a few vivid sentences. The picture is never shown — and never stored.
       </p>
+
+      <div className="mb-6 flex items-center gap-2 text-sm">
+        <span className="text-ash">language</span>
+        <select value={lang} onChange={(e) => setLang(e.target.value)}
+          className="rounded-lg border border-hairline bg-surface px-3 py-1.5 text-paper focus:border-emerald focus:outline-none">
+          {LANGS.map((l) => (
+            <option key={l.code} value={l.code} className="bg-ink">{l.label}</option>
+          ))}
+        </select>
+      </div>
 
       {err && <p className="mb-4 rounded-md border border-hairline bg-surface px-3 py-2 text-sm text-paper">{err}</p>}
 

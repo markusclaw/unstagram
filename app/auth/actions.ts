@@ -21,6 +21,7 @@ export async function signUp(formData: FormData) {
   const email = String(formData.get("email") ?? "");
   const password = String(formData.get("password") ?? "");
   const username = String(formData.get("username") ?? "").trim().toLowerCase();
+  const language = String(formData.get("language") ?? "en");
 
   if (!/^[a-z0-9_.]{3,20}$/.test(username)) {
     redirect("/signup?error=" + encodeURIComponent("Username: 3–20 chars, a–z 0–9 . _"));
@@ -29,7 +30,7 @@ export async function signUp(formData: FormData) {
   const { error } = await supabase.auth.signUp({
     email,
     password,
-    options: { data: { username } },
+    options: { data: { username, language } },
   });
   if (error) redirect("/signup?error=" + encodeURIComponent(error.message));
 
