@@ -1,16 +1,51 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { createStory } from "@/app/story/actions";
 import type { StoryGroup } from "@/lib/db";
+
+const SLIDE_MS = 5000;
 
 export default function StoriesClient({ groups, canAdd }: { groups: StoryGroup[]; canAdd: boolean }) {
   const router = useRouter();
   const [adding, setAdding] = useState(false);
   const [text, setText] = useState("");
   const [busy, setBusy] = useState(false);
+
   const [view, setView] = useState<StoryGroup | null>(null);
+  const [vi, setVi] = useState(0); // current slide index
+  const [prog, setProg] = useState(0); // 0 -> 100 over SLIDE_MS
+
+  // (re)start the timer + progress bar whenever the slide changes
+  useEffect(() => {
+    if (!view) return;
+    setProg(0);
+    const raf = requestAnimationFrame(() => setProg(100));
+    const t = setTimeout(() => {
+      setVi((i) => {
+        if (i + 1 >= view.lines.length) {
+          setView(null);
+          return 0;
+        }
+        return i + 1;
+      });
+    }, SLIDE_MS);
+    return () => {
+      clearTimeout(t);
+      cancelAnimationFrame(raf);
+    };
+  }, [view, vi]);
+
+  function open(g: StoryGroup) {
+    setVi(0);
+    setView(g);
+  }
+  function advance() {
+    if (!view) return;
+    if (vi + 1 >= view.lines.length) setView(null);
+    else setVi(vi + 1);
+  }
 
   async function submit() {
     if (!text.trim() || busy) return;
@@ -27,7 +62,7 @@ export default function StoriesClient({ groups, canAdd }: { groups: StoryGroup[]
     return (
       <button onClick={onClick} className="flex flex-col items-center gap-1.5">
         <span className={"rounded-full p-[2px] " + (plus ? "bg-hairline" : "bg-gradient-to-tr from-emerald via-paper to-emerald")}>
-          <span className="relative flex h-14 w-14 items-center justify-center rounded-full bg-ink text-lg font-bold text-ash">
+          <span className="flex h-14 w-14 items-center justify-center rounded-full bg-ink text-lg font-bold text-ash">
             {plus ? "+" : label.slice(0, 1).toUpperCase()}
           </span>
         </span>
@@ -41,7 +76,7 @@ export default function StoriesClient({ groups, canAdd }: { groups: StoryGroup[]
       <div className="mb-6 flex gap-4 overflow-x-auto border-b border-hairline pb-5">
         {canAdd && <Ring label="" plus onClick={() => setAdding(true)} />}
         {groups.map((g) => (
-          <Ring key={g.username} label={g.username} onClick={() => setView(g)} />
+          <Ring key={g.username} label={g.username} onClick={() => open(g)} />
         ))}
       </div>
 
@@ -71,16 +106,32 @@ export default function StoriesClient({ groups, canAdd }: { groups: StoryGroup[]
       )}
 
       {view && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-ink/95 px-6" onClick={() => setView(null)}>
-          <div className="max-w-reading text-center">
-            <p className="mb-4 text-xs uppercase tracking-widest text-ash">@{view.username}'s story</p>
-            <div className="space-y-4">
-              {view.lines.map((l, i) => (
-                <p key={i} className="prose-body text-2xl leading-relaxed">{l}</p>
-              ))}
-            </div>
-            <p className="mt-8 text-xs text-ash">tap anywhere to close</p>
+        <div className="fixed inset-0 z-50 flex flex-col bg-ink/95" onClick={advance}>
+          {/* progress segments */}
+          <div className="flex gap-1 px-3 pt-3">
+            {view.lines.map((_, j) => (
+              <span key={j} className="h-0.5 flex-1 overflow-hidden rounded-full bg-hairline">
+                <span
+                  className="block h-full bg-paper"
+                  style={{
+                    width: j < vi ? "100%" : j === vi ? `${prog}%` : "0%",
+                    transition: j === vi ? `width ${SLIDE_MS}ms linear` : "none",
+                  }}
+                />
+              </span>
+            ))}
           </div>
+
+          <div className="flex items-center justify-between px-4 py-3">
+            <span className="text-xs uppercase tracking-widest text-ash">@{view.username}'s story</span>
+            <button onClick={(e) => { e.stopPropagation(); setView(null); }} className="text-ash hover:text-paper" aria-label="close">✕</button>
+          </div>
+
+          <div className="flex flex-1 items-center justify-center px-8 text-center">
+            <p dir="auto" className="prose-body max-w-reading text-2xl leading-relaxed">{view.lines[vi]}</p>
+          </div>
+
+          <p className="pb-8 text-center text-xs text-ash">tap for next</p>
         </div>
       )}
     </>
