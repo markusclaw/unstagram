@@ -62,8 +62,13 @@ export default function Composer() {
   }
 
   async function post() {
+    setErr("");
     setStage("posting");
-    await createPost(prose, location || undefined); // server action redirects to feed
+    const res = await createPost(prose, location || undefined); // redirects to feed on success
+    if (res?.error) {
+      setErr("Couldn't post: " + res.error);
+      setStage("review");
+    }
   }
 
   return (
@@ -87,7 +92,7 @@ export default function Composer() {
 
       {(stage === "review" || stage === "posting") && (
         <div>
-          <p className="mb-2 text-xs uppercase tracking-wide text-ash">how it reads ({prose.length}/600)</p>
+          <p className="mb-2 text-xs uppercase tracking-wide text-ash">how it reads ({prose.length}/720)</p>
           <p className="prose-body rounded-lg border border-hairline bg-surface p-5">{prose}</p>
 
           <div className="mt-4">

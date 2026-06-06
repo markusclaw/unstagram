@@ -4,9 +4,9 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 
-const MAX_CHARS = 600;
+const MAX_CHARS = 720;
 
-export async function createPost(prose: string, location?: string) {
+export async function createPost(prose: string, location?: string): Promise<{ error: string } | void> {
   const supabase = await createClient();
   const {
     data: { user },
@@ -17,7 +17,8 @@ export async function createPost(prose: string, location?: string) {
   if (!clean) return;
   const loc = (location ?? "").trim().slice(0, 80) || null;
 
-  await supabase.from("posts").insert({ author: user.id, prose: clean, location: loc });
+  const { error } = await supabase.from("posts").insert({ author: user.id, prose: clean, location: loc });
+  if (error) return { error: error.message };
   revalidatePath("/");
   redirect("/");
 }

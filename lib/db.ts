@@ -32,25 +32,49 @@ function author(raw: any): Author {
   const a = one<any>(raw);
   return { username: a?.username ?? "someone", displayName: a?.display_name ?? null };
 }
-function aggCount(raw: any): number {
-  const a = one<any>(raw);
-  return a?.count ?? 0;
+
+// Plain columns + comments only — no aggregate embeds (those were failing).
+const POST_SELECT =
+  "id, prose, created_at, location, author:profiles!posts_author_fkey(username, display_name), comments(id, body, created_at, author:profiles!comments_author_fkey(username, display_name))";
+
+type Tally = {
+  like: Record<string, number>;
+  repost: Record<string, number>;
+  myLikes: Set<string>;
+  myReposts: Set<string>;
+};
+
+async function tally(ids: string[], meId?: string): Promise<Tally> {
+  const empty: Tally = { like: {}, repost: {}, myLikes: new Set(), myReposts: new Set() };
+  if (ids.length === 0) return empty;
+  const supabase = await createClient();
+  const [{ data: likes }, { data: reposts }] = await Promise.all([
+    supabase.from("likes").select("post_id, user_id").in("post_id", ids),
+    supabase.from("reposts").select("post_id, user_id").in("post_id", ids),
+  ]);
+  const t: Tally = { like: {}, repost: {}, myLikes: new Set(), myReposts: new Set() };
+  for (const x of likes ?? []) {
+    t.like[x.post_id] = (t.like[x.post_id] ?? 0) + 1;
+    if (meId && x.user_id === meId) t.myLikes.add(x.post_id);
+  }
+  for (const x of reposts ?? []) {
+    t.repost[x.post_id] = (t.repost[x.post_id] ?? 0) + 1;
+    if (meId && x.user_id === meId) t.myReposts.add(x.post_id);
+  }
+  return t;
 }
 
-const POST_SELECT =
-  "id, prose, created_at, location, author:profiles(username, display_name), comments(id, body, created_at, author:profiles(username, display_name)), likes(count), reposts(count)";
-
-function mapPost(row: any, myLikes: Set<string>, myReposts: Set<string>): FeedPost {
+function mapPost(row: any, t: Tally): FeedPost {
   return {
     id: row.id,
     prose: row.prose,
     createdAt: row.created_at,
     location: row.location ?? null,
     author: author(row.author),
-    likeCount: aggCount(row.likes),
-    repostCount: aggCount(row.reposts),
-    liked: myLikes.has(row.id),
-    reposted: myReposts.has(row.id),
+    likeCount: t.like[row.id] ?? 0,
+    repostCount: t.repost[row.id] ?? 0,
+    liked: t.myLikes.has(row.id),
+    reposted: t.myReposts.has(row.id),
     replies: (row.comments ?? [])
       .slice()
       .sort((a: any, b: any) => +new Date(a.created_at) - +new Date(b.created_at))
@@ -58,32 +82,36 @@ function mapPost(row: any, myLikes: Set<string>, myReposts: Set<string>): FeedPo
   };
 }
 
-async function myInteractions(ids: string[]) {
+export async function getFeed(): Promise<FeedPost[]> {
   const supabase = await createClient();
   const {
     data: { user },
   } = await supabase.auth.getUser();
-  if (!user || ids.length === 0) return { myLikes: new Set<string>(), myReposts: new Set<string>() };
-  const [{ data: l }, { data: r }] = await Promise.all([
-    supabase.from("likes").select("post_id").eq("user_id", user.id).in("post_id", ids),
-    supabase.from("reposts").select("post_id").eq("user_id", user.id).in("post_id", ids),
-  ]);
-  return {
-    myLikes: new Set((l ?? []).map((x: any) => x.post_id)),
-    myReposts: new Set((r ?? []).map((x: any) => x.post_id)),
-  };
-}
-
-export async function getFeed(): Promise<FeedPost[]> {
-  const supabase = await createClient();
   const { data, error } = await supabase
     .from("posts")
     .select(POST_SELECT)
     .order("created_at", { ascending: false })
     .limit(100);
+  if (error) console.error("getFeed error:", error.message);
   if (error || !data) return [];
-  const { myLikes, myReposts } = await myInteractions(data.map((r: any) => r.id));
-  return data.map((row: any) => mapPost(row, myLikes, myReposts));
+  const t = await tally(data.map((r: any) => r.id), user?.id);
+  return data.map((row: any) => mapPost(row, t));
+}
+
+export async function getPostsByAuthor(authorId: string): Promise<FeedPost[]> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  const { data, error } = await supabase
+    .from("posts")
+    .select(POST_SELECT)
+    .eq("author", authorId)
+    .order("created_at", { ascending: false });
+  if (error) console.error("getPostsByAuthor error:", error.message);
+  if (error || !data) return [];
+  const t = await tally(data.map((r: any) => r.id), user?.id);
+  return data.map((row: any) => mapPost(row, t));
 }
 
 export async function getProfile(username: string): Promise<Profile | null> {
@@ -116,18 +144,6 @@ export async function getProfile(username: string): Promise<Profile | null> {
     isFollowing: !!(mine as any)?.data,
     isMe: user?.id === data.id,
   };
-}
-
-export async function getPostsByAuthor(authorId: string): Promise<FeedPost[]> {
-  const supabase = await createClient();
-  const { data, error } = await supabase
-    .from("posts")
-    .select(POST_SELECT)
-    .eq("author", authorId)
-    .order("created_at", { ascending: false });
-  if (error || !data) return [];
-  const { myLikes, myReposts } = await myInteractions(data.map((r: any) => r.id));
-  return data.map((row: any) => mapPost(row, myLikes, myReposts));
 }
 
 export async function getCurrentProfile(): Promise<{ id: string; username: string; displayName: string | null } | null> {
