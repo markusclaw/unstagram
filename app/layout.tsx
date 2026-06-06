@@ -1,5 +1,7 @@
 import type { Metadata } from "next";
 import Sidebar from "@/components/Sidebar";
+import MobileTopBar from "@/components/MobileTopBar";
+import MobileBar from "@/components/MobileBar";
 import SuggestionsRail from "@/components/SuggestionsRail";
 import "./globals.css";
 
@@ -48,6 +50,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         />
       </head>
       <body className="min-h-screen bg-ink text-paper">
+        <MobileTopBar />
         <div className="mx-auto flex w-full max-w-[1100px] justify-center">
           <Sidebar />
           <main className="min-w-0 flex-1 border-x border-hairline px-5 pb-24 pt-6 md:max-w-[640px]">
@@ -55,7 +58,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           </main>
           <SuggestionsRail />
         </div>
-        {/* mobile bottom nav handled by Sidebar visibility; kept minimal for concept */}
+        <MobileBar />
       </body>
     </html>
   );
