@@ -22,7 +22,7 @@ export default async function SuggestionsRail() {
       {me ? (
         <div className="mb-6 flex items-center justify-between">
           <div className="min-w-0">
-            <p className="truncate text-sm font-semibold text-paper">@{me.username}</p>
+            <Link href={`/u/${me.username}`} className="truncate text-sm font-semibold text-paper hover:text-emerald">@{me.username}</Link>
             <p className="truncate text-sm text-ash">{me.displayName ?? me.username}</p>
           </div>
           <form action={signOut}>

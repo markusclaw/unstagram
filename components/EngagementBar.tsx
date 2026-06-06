@@ -45,7 +45,7 @@ export default function EngagementBar({
   return (
     <div className="mt-4 flex items-center gap-6 text-sm text-ash">
       <button onClick={like} aria-label="like"
-        className={"flex items-center gap-1.5 transition hover:text-paper " + (l ? "text-emerald" : "")}>
+        className={"flex items-center gap-1.5 transition hover:text-paper " + (l ? "text-red-500" : "")}>
         <Icon d={PATHS.like} fill={l ? "currentColor" : "none"} />
         <span>{lc}</span>
       </button>

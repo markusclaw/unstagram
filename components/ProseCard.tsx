@@ -52,7 +52,7 @@ export default function ProseCard({ post }: { post: FeedPost }) {
         <ul className="mt-4 space-y-3 border-l border-hairline pl-4">
           {post.replies.map((r) => (
             <li key={r.id} className="text-sm">
-              <span className="text-ash">@{r.author.username} </span>
+              <Link href={`/u/${r.author.username}`} className="text-ash hover:text-emerald">@{r.author.username}</Link>{" "}
               <span className="text-paper">{r.body}</span>
             </li>
           ))}

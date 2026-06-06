@@ -31,7 +31,7 @@ export default async function ProfilePage({
           )}
         </div>
 
-        {profile.bio && <p className="mt-3 prose-body text-base">{profile.bio}</p>}
+        {profile.bio && <p className="mt-3 text-sm leading-relaxed text-paper">{profile.bio}</p>}
 
         <div className="mt-4 flex gap-6 text-sm">
           <span><span className="font-semibold text-paper">{posts.length}</span> <span className="text-ash">posts</span></span>
