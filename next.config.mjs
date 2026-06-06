@@ -1,16 +1,11 @@
 /** @type {import('next').NextConfig} */
-// Static export so GitHub Pages can host it (Pages serves static files only).
-// On Pages the site lives under /unstagram, so set basePath there. Locally
-// (npm run dev / build without PAGES) it stays at the root.
-const isPages = process.env.PAGES === "true";
-const repo = "unstagram";
-
 const nextConfig = {
-  output: "export",
+  // Phase 2 runs on Cloudflare Workers via OpenNext (SSR), not static export.
   images: { unoptimized: true },
-  trailingSlash: true,
-  basePath: isPages ? `/${repo}` : "",
-  assetPrefix: isPages ? `/${repo}/` : undefined,
 };
 
 export default nextConfig;
+
+// Lets `next dev` talk to local Cloudflare bindings during development.
+import { initOpenNextCloudflareForDev } from "@opennextjs/cloudflare";
+initOpenNextCloudflareForDev();

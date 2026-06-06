@@ -1,0 +1,21 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "main": ".open-next/worker.js",
+  "name": "unstagram",
+  "compatibility_date": "2025-03-01",
+  "compatibility_flags": ["nodejs_compat", "global_fetch_strictly_public"],
+  "assets": {
+    "directory": ".open-next/assets",
+    "binding": "ASSETS"
+  },
+  "services": [
+    { "binding": "WORKER_SELF_REFERENCE", "service": "unstagram" }
+  ],
+  "images": { "binding": "IMAGES" },
+  "vars": {
+    // Public Supabase values (RLS protects the data).
+    "NEXT_PUBLIC_SUPABASE_URL": "https://rswtjnpwavtfogmwvohx.supabase.co",
+    "NEXT_PUBLIC_SUPABASE_ANON_KEY": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJzd3RqbnB3YXZ0Zm9nbXd2b2h4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODA3MTc4MjcsImV4cCI6MjA5NjI5MzgyN30.yTkQ-tq5GjJs9mrd0_ShULU4fKIucjZCGTE6fZDvsnY"
+  }
+  // Secret (set with `wrangler secret put`, NOT here): GEMINI_API_KEY
+}

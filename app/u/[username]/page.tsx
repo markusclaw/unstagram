@@ -1,24 +1,25 @@
 import { notFound } from "next/navigation";
 import ProseCard from "@/components/ProseCard";
-import { users, getUserByUsername, getPostsByUser } from "@/lib/mockData";
+import { getProfile, getPostsByAuthor } from "@/lib/db";
 
-// Static export has no server, so pre-render the known profiles at build time.
-export function generateStaticParams() {
-  return users.map((u) => ({ username: u.username }));
-}
-export const dynamicParams = false;
+export const dynamic = "force-dynamic";
 
-export default function ProfilePage({ params }: { params: { username: string } }) {
-  const user = getUserByUsername(params.username);
-  if (!user) return notFound();
-  const posts = getPostsByUser(user.id);
+export default async function ProfilePage({
+  params,
+}: {
+  params: Promise<{ username: string }>;
+}) {
+  const { username } = await params;
+  const profile = await getProfile(username);
+  if (!profile) return notFound();
+  const posts = await getPostsByAuthor(profile.id);
 
   return (
     <div>
       <div className="mb-8 border-b border-hairline pb-6">
-        <h1 className="text-2xl font-bold">{user.displayName}</h1>
-        <p className="text-sm text-ash">@{user.username}</p>
-        {user.bio && <p className="mt-3 prose-body text-base">{user.bio}</p>}
+        <h1 className="text-2xl font-bold">{profile.displayName ?? profile.username}</h1>
+        <p className="text-sm text-ash">@{profile.username}</p>
+        {profile.bio && <p className="mt-3 prose-body text-base">{profile.bio}</p>}
         <p className="mt-3 text-xs text-ash">{posts.length} posts · no follower count, by design</p>
       </div>
       {posts.length === 0 ? (

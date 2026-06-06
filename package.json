@@ -1,27 +1,33 @@
 {
   "name": "unstagram",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "private": true,
-  "description": "Instagram, but we deleted the pictures. A satirical anti-Instagram: you post a photo, your followers read AI-written prose. The image is never shown.",
+  "description": "Instagram, but we deleted the pictures. Phase 2: real accounts + AI prose, on Cloudflare Workers + Supabase.",
   "scripts": {
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "preview": "opennextjs-cloudflare build && opennextjs-cloudflare preview",
+    "deploy": "opennextjs-cloudflare build && opennextjs-cloudflare deploy",
+    "upload": "opennextjs-cloudflare build && opennextjs-cloudflare upload",
+    "cf-typegen": "wrangler types --env-interface CloudflareEnv cloudflare-env.d.ts"
   },
   "dependencies": {
-    "next": "^14.2.35",
-    "react": "18.3.1",
-    "react-dom": "18.3.1"
-  },
-  "devDependencies": {
-    "@types/node": "20.14.10",
-    "@types/react": "18.3.3",
-    "@types/react-dom": "18.3.0",
-    "autoprefixer": "10.4.19",
-    "postcss": "8.4.39",
-    "tailwindcss": "3.4.6",
-    "typescript": "5.5.3"
+    "@opennextjs/cloudflare": "^1.19.11",
+    "@supabase/ssr": "^0.10.3",
+    "@supabase/supabase-js": "^2.107.0",
+    "@types/node": "^20.14.10",
+    "@types/react": "^19.0.0",
+    "@types/react-dom": "^19.0.0",
+    "autoprefixer": "^10.4.19",
+    "next": "^15.5.19",
+    "postcss": "^8.4.39",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0",
+    "tailwindcss": "^3.4.6",
+    "typescript": "^5.5.3",
+    "wrangler": "^4.98.0"
   }
 }

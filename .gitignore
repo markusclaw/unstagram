@@ -1,7 +1,12 @@
 /node_modules
 /.next/
 /out/
-.env*
+/.open-next/
+.env
+.env*.local
+.dev.vars
 *.tsbuildinfo
 next-env.d.ts
+cloudflare-env.d.ts
+.wrangler
 .DS_Store

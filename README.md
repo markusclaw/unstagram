@@ -2,94 +2,58 @@
 
 > Instagram, but we deleted the pictures.
 
-You post a photo. Your followers never see it — they read an AI-written
-description instead. The image is never shown and never stored. A satirical,
-privacy-by-accident, anti-algorithm anti-Instagram.
+You post a photo. Your followers never see it — they read AI-written prose instead.
+The image is never shown and never stored. A satirical, privacy-by-accident, anti-algorithm anti-Instagram.
 
-This is the **concept prototype**: the full app shape with mock data, so you
-can click through the whole thing today. No database, no API keys, no auth yet.
+**Phase 2 (current):** real accounts (invite-only), posts saved in a database, and real AI prose
+from your photos. Runs on Cloudflare Workers + Supabase.
+➡️ **Setup is in [`SETUP_PHASE2.md`](./SETUP_PHASE2.md).**
 
-## Run it
+## Stack
+
+- **Next.js 15** (App Router) on **Cloudflare Workers** via the **OpenNext** adapter
+- **Supabase** — Postgres + email/password auth
+- **Anthropic Claude** (vision) writes the prose; key stays server-side
+- **Tailwind** dark/serif design system (Blueprint §08)
+
+## Run locally
 
 ```bash
+cp .env.example .env.local     # add your Supabase + Anthropic values
 npm install
-npm run dev      # http://localhost:3000
+npm run dev                    # http://localhost:3000
 ```
 
-Other scripts: `npm run build`, `npm run start`, `npm run typecheck`.
+`npm run preview` runs it in the real Workers runtime. `npm run deploy` builds + deploys to Cloudflare.
 
-## The joke, structurally
-
-It copies Instagram's chrome exactly — three-column shell, stories, a Reels
-tab, an engagement bar, "Suggested for you" — and then refuses to show a single
-image. The more it looks like Instagram, the harder the bit lands.
+## Map
 
 ```
 app/
-  page.tsx              Feed — stories row + chronological prose, no ranking
-  scrolls/page.tsx      "Scrolls": Reels, but auto-advancing single sentences
-  compose/page.tsx      Post flow: pick photo -> see prose -> post / regenerate
-  u/[username]/page.tsx  Profile (no follower counts, by design)
-  search/page.tsx       Search (deadpan: there are only words)
-  messages/page.tsx     DMs placeholder (the one place pictures are allowed)
-  notifications/page.tsx  "Nothing is demanding your attention. That's the feature."
-  login/page.tsx        Login (faked — Google OAuth slot for later)
-  layout.tsx            3-column Instagram shell
-components/
-  Sidebar.tsx           Left nav rail (Home/Search/Scrolls/Messages/etc.)
-  SuggestionsRail.tsx   Right "Suggested for you" rail + footer
-  StoriesRow.tsx        Gradient story rings -> ephemeral one-line prose
-  ProseCard.tsx         A post (no image, ever)
-  EngagementBar.tsx     IG action row, disabled-on-purpose. No likes/counts.
-  Composer.tsx          Client-side compose flow
-  Scrolls.tsx           The Scrolls player
-  Nav.tsx               (legacy single-column nav — unused, safe to delete)
+  page.tsx               Feed (chronological, from Supabase)
+  u/[username]/page.tsx  Profile
+  compose/page.tsx       Pick photo → real AI prose → post
+  scrolls/page.tsx       "Scrolls": Reels, but auto-advancing sentences
+  login • signup         Invite-only email/password auth
+  api/describe/route.ts  THE PRODUCT — image → Claude → prose, image discarded
+  auth/actions.ts        signIn / signUp / signOut
+  post/actions.ts        createPost / addReply
+components/              Sidebar, SuggestionsRail, ProseCard, Composer, StoriesRow, Scrolls, EngagementBar
 lib/
-  types.ts              User / Post / Reply
-  mockData.ts           Fake users, posts, stories, scrolls + read helpers
-  generateProse.ts      THE PRODUCT. Canned prose today; one TODO to swap in
-                        a real vision-LLM call.
-tailwind.config.ts      Design tokens from Blueprint §08
+  supabase/              browser + server clients, session middleware
+  db.ts                  feed / profile / posts queries
+  format.ts              timeAgo
+supabase/schema.sql      tables + RLS + signup trigger + invite-code functions
+wrangler.jsonc           Cloudflare Worker config
+open-next.config.ts      OpenNext adapter config
 ```
 
 ## Design system (Blueprint §08)
 
-- Background `#0D0D0D` · Accent `#3D8B6A` · Text `#F0F0F0` · Muted `#A0A0A0`
-- Prose in Merriweather serif, 18px. UI in system sans. Dark, lots of whitespace.
+Background `#0D0D0D` · Accent `#3D8B6A` · Text `#F0F0F0` · Muted `#A0A0A0`.
+Prose in Merriweather serif, 18px. Dark, lots of whitespace.
 
-## The one thing that matters next
+## The one thing that matters
 
-`lib/generateProse.ts` is the entire product. It returns canned prose so
-everything is clickable. Real version: send the image straight to a
-vision-capable LLM with a good prose prompt — one call, image discarded
-immediately, never stored. That last part is the honest privacy line (the image
-*is* sent to a model; it's just never kept or shown — so the copy should say
-"turned into words, then deleted," not "never leaves your device").
-
-If that prose is consistently funny/evocative, the concept works. Tune the
-prompt before building anything else.
-
-## Deliberately NOT here (concept stage)
-
-Real auth, database, audio, working DMs, moderation, pricing. All intentionally
-deferred — see the blueprint feedback doc.
-
-## Deploy to GitHub Pages (live for review)
-
-Configured for static export, so GitHub Pages can host it. Live URL will be:
-**https://markusclaw.github.io/unstagram/**
-
-One-time setup (Markus):
-
-1. Push the code to the repo's `main` branch.
-2. On GitHub: **Settings → Pages → Build and deployment → Source = GitHub Actions.**
-3. That's it. The included workflow (`.github/workflows/deploy.yml`) builds the
-   static export and publishes it on every push to `main`.
-
-Notes:
-- The build sets `PAGES=true`, which applies `basePath: /unstagram` so all assets
-  and links resolve under the Pages subpath. Local `npm run dev` stays at the root.
-- Dynamic profile pages are pre-rendered at build time (`generateStaticParams`),
-  since Pages has no server.
-- To test the production export locally:
-  `PAGES=true npm run build && npx serve out` (then open the `/unstagram/` path).
+`app/api/describe/route.ts` holds the prose `PROMPT`. That single prompt is the product —
+if the prose is consistently funny/evocative, the concept works. Tune it there.

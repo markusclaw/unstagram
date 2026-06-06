@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { getCurrentProfile } from "@/lib/db";
 
 function Icon({ d }: { d: string }) {
   return (
@@ -19,17 +20,20 @@ const ICONS = {
   profile: "M12 12a4 4 0 1 0 0-8 4 4 0 0 0 0 8ZM4 21a8 8 0 0 1 16 0",
 };
 
-const NAV = [
-  { href: "/", label: "Home", icon: ICONS.home },
-  { href: "/search", label: "Search", icon: ICONS.search },
-  { href: "/scrolls", label: "Scrolls", icon: ICONS.scrolls },
-  { href: "/messages", label: "Messages", icon: ICONS.messages },
-  { href: "/notifications", label: "Notifications", icon: ICONS.notifications },
-  { href: "/compose", label: "Create", icon: ICONS.create },
-  { href: "/u/greg", label: "Profile", icon: ICONS.profile },
-];
+export default async function Sidebar() {
+  const me = await getCurrentProfile();
+  const profileHref = me ? `/u/${me.username}` : "/login";
 
-export default function Sidebar() {
+  const NAV = [
+    { href: "/", label: "Home", icon: ICONS.home },
+    { href: "/search", label: "Search", icon: ICONS.search },
+    { href: "/scrolls", label: "Scrolls", icon: ICONS.scrolls },
+    { href: "/messages", label: "Messages", icon: ICONS.messages },
+    { href: "/notifications", label: "Notifications", icon: ICONS.notifications },
+    { href: "/compose", label: "Create", icon: ICONS.create },
+    { href: profileHref, label: "Profile", icon: ICONS.profile },
+  ];
+
   return (
     <aside className="sticky top-0 hidden h-screen w-[76px] shrink-0 flex-col border-r border-hairline px-3 py-6 md:flex xl:w-[245px]">
       <Link href="/" className="mb-8 px-2 text-xl font-bold tracking-tight">
@@ -38,7 +42,7 @@ export default function Sidebar() {
       </Link>
       <nav className="flex flex-col gap-1">
         {NAV.map((item) => (
-          <Link key={item.href} href={item.href}
+          <Link key={item.label} href={item.href}
             className="flex items-center gap-4 rounded-lg px-2 py-3 text-paper hover:bg-surface">
             <Icon d={item.icon} />
             <span className="hidden text-[15px] xl:inline">{item.label}</span>
