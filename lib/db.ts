@@ -182,6 +182,65 @@ export async function getActiveStories(): Promise<StoryGroup[]> {
   return Array.from(map.values());
 }
 
+export type ActivityItem = {
+  id: string;
+  type: "follow" | "like" | "repost" | "reply";
+  actor: string;
+  postId?: string;
+  snippet?: string;
+  createdAt: string;
+};
+
+export async function getActivity(): Promise<ActivityItem[]> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return [];
+
+  const { data: myPosts } = await supabase.from("posts").select("id, prose").eq("author", user.id);
+  const myPostIds = (myPosts ?? []).map((p: any) => p.id);
+  const proseById = new Map<string, string>((myPosts ?? []).map((p: any) => [p.id, p.prose]));
+  const noRows = Promise.resolve({ data: [] as any[] });
+
+  const [follows, likes, reposts, comments] = await Promise.all([
+    supabase.from("follows").select("follower, created_at").eq("following", user.id),
+    myPostIds.length ? supabase.from("likes").select("user_id, post_id, created_at").in("post_id", myPostIds).neq("user_id", user.id) : noRows,
+    myPostIds.length ? supabase.from("reposts").select("user_id, post_id, created_at").in("post_id", myPostIds).neq("user_id", user.id) : noRows,
+    myPostIds.length ? supabase.from("comments").select("author, post_id, body, created_at").in("post_id", myPostIds).neq("author", user.id) : noRows,
+  ]);
+
+  const actorIds = new Set<string>();
+  (follows.data ?? []).forEach((x: any) => actorIds.add(x.follower));
+  (likes.data ?? []).forEach((x: any) => actorIds.add(x.user_id));
+  (reposts.data ?? []).forEach((x: any) => actorIds.add(x.user_id));
+  (comments.data ?? []).forEach((x: any) => actorIds.add(x.author));
+
+  let nameById = new Map<string, string>();
+  if (actorIds.size) {
+    const { data: profs } = await supabase.from("profiles").select("id, username").in("id", Array.from(actorIds));
+    nameById = new Map((profs ?? []).map((p: any) => [p.id, p.username]));
+  }
+  const snip = (id: string) => {
+    const t = proseById.get(id) ?? "";
+    return t.length > 70 ? t.slice(0, 70) + "…" : t;
+  };
+  const name = (id: string) => nameById.get(id) ?? "someone";
+
+  const items: ActivityItem[] = [];
+  for (const f of follows.data ?? [])
+    items.push({ id: "f" + f.follower + f.created_at, type: "follow", actor: name(f.follower), createdAt: f.created_at });
+  for (const l of likes.data ?? [])
+    items.push({ id: "l" + l.user_id + l.post_id, type: "like", actor: name(l.user_id), postId: l.post_id, snippet: snip(l.post_id), createdAt: l.created_at });
+  for (const r of reposts.data ?? [])
+    items.push({ id: "r" + r.user_id + r.post_id, type: "repost", actor: name(r.user_id), postId: r.post_id, snippet: snip(r.post_id), createdAt: r.created_at });
+  for (const c of comments.data ?? [])
+    items.push({ id: "c" + c.author + c.post_id + c.created_at, type: "reply", actor: name(c.author), postId: c.post_id, snippet: c.body, createdAt: c.created_at });
+
+  items.sort((a, b) => +new Date(b.createdAt) - +new Date(a.createdAt));
+  return items.slice(0, 60);
+}
+
 export async function getCurrentProfile(): Promise<{ id: string; username: string; displayName: string | null; language: string } | null> {
   const supabase = await createClient();
   const {
