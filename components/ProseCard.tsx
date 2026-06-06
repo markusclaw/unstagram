@@ -3,6 +3,7 @@ import type { FeedPost } from "@/lib/db";
 import { timeAgo } from "@/lib/format";
 import EngagementBar from "./EngagementBar";
 import { addReply } from "@/app/post/actions";
+import ReportButton from "./ReportButton";
 
 function PinIcon() {
   return (
@@ -26,6 +27,7 @@ export default function ProseCard({ post }: { post: FeedPost }) {
         </Link>
         <span className="text-ash">·</span>
         <span className="text-ash">{timeAgo(post.createdAt)}</span>
+        <span className="ml-auto"><ReportButton postId={post.id} /></span>
       </div>
 
       {/* where the photo would be. there is no photo. that's the post. */}

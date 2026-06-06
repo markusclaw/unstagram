@@ -30,10 +30,13 @@ export async function updateSession(request: NextRequest) {
 
   const path = request.nextUrl.pathname;
   const isPublic =
+    path === "/about" ||
     path.startsWith("/login") ||
     path.startsWith("/signup") ||
     path.startsWith("/api") ||
-    path === "/about";
+    path === "/robots.txt" ||
+    path === "/sitemap.xml" ||
+    path === "/manifest.webmanifest";
 
   // Not logged in and trying to use the app → send to login.
   if (!user && !isPublic) {

@@ -37,7 +37,7 @@ export default async function SuggestionsRail() {
 
       <div className="mb-3 flex items-center justify-between">
         <span className="text-sm font-semibold text-ash">Suggested for you</span>
-        <span className="text-xs font-semibold text-paper">See all</span>
+        <Link href="/search" className="text-xs font-semibold text-paper hover:text-emerald">See all</Link>
       </div>
 
       {others.length === 0 ? (
@@ -56,8 +56,8 @@ export default async function SuggestionsRail() {
       )}
 
       <footer className="mt-8 space-y-1 text-[11px] text-ash">
-        <p>About · Help · Press · API · Jobs · Privacy · Terms</p>
-        <p>© 2026 UNSTAGRAM · <span className="italic">not from Meta</span></p>
+        <p><Link href="/about" className="hover:text-paper">About</Link> · Help · Press · API · Jobs · Privacy · Terms</p>
+        <p>© 2026 UNSTAGRAM</p>
       </footer>
     </aside>
   );

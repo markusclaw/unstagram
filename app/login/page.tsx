@@ -1,5 +1,8 @@
 import Link from "next/link";
+import type { Metadata } from "next";
 import { signIn } from "@/app/auth/actions";
+
+export const metadata: Metadata = { title: "Log in", description: "Log in to UNSTAGRAM — where photos become words." };
 
 export default async function LoginPage({
   searchParams,
@@ -10,7 +13,7 @@ export default async function LoginPage({
   return (
     <div className="mx-auto max-w-sm py-16">
       <h1 className="mb-1 text-center text-2xl font-bold">UNSTAGRAM</h1>
-      <p className="mb-8 text-center text-sm text-ash">Instagram, but we deleted the pictures.</p>
+      <p className="mb-8 text-center text-sm text-ash">Post a photo. Your followers read the words.</p>
 
       {error && (
         <p className="mb-4 rounded-md border border-hairline bg-surface px-3 py-2 text-sm text-paper">{error}</p>

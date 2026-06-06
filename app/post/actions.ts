@@ -66,3 +66,17 @@ export async function toggleRepost(postId: string, reposted: boolean) {
   }
   revalidatePath("/");
 }
+
+export async function reportPost(postId: string, reason?: string) {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) redirect("/login");
+  if (!postId) return;
+  await supabase.from("reports").insert({
+    post_id: postId,
+    reporter: user.id,
+    reason: (reason ?? "").trim().slice(0, 300) || null,
+  });
+}

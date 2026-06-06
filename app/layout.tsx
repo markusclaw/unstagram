@@ -3,9 +3,37 @@ import Sidebar from "@/components/Sidebar";
 import SuggestionsRail from "@/components/SuggestionsRail";
 import "./globals.css";
 
+const SITE = process.env.NEXT_PUBLIC_SITE_URL || "https://unstagram.workers.dev";
+const DESCRIPTION =
+  "UNSTAGRAM is a text-only social feed: you post a photo and your followers read an AI-written description instead. The image is never shown and never stored. A chronological, privacy-first, text-only social feed.";
+
 export const metadata: Metadata = {
-  title: "UNSTAGRAM",
-  description: "Instagram, but we deleted the pictures.",
+  metadataBase: new URL(SITE),
+  title: {
+    default: "UNSTAGRAM — photos you read, not see",
+    template: "%s · UNSTAGRAM",
+  },
+  description: DESCRIPTION,
+  applicationName: "UNSTAGRAM",
+  keywords: [
+    "UNSTAGRAM", "text-only social network", "AI image description",
+    "privacy-first social media", "chronological feed", "no algorithm", "describe photos with AI",
+  ],
+  authors: [{ name: "UNSTAGRAM" }],
+  alternates: { canonical: "/" },
+  openGraph: {
+    type: "website",
+    siteName: "UNSTAGRAM",
+    title: "UNSTAGRAM — photos you read, not see",
+    description: DESCRIPTION,
+    url: SITE,
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "UNSTAGRAM — photos you read, not see",
+    description: DESCRIPTION,
+  },
+  robots: { index: true, follow: true },
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
