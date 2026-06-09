@@ -42,7 +42,7 @@ export default async function MetricsPage() {
   return (
     <div className="py-2">
       <h1 className="mb-1 text-2xl font-bold">Metrics</h1>
-      <p className="mb-6 text-sm text-ash">Product snapshot. Traffic & sources live in your Cloudflare Web Analytics dashboard.</p>
+      <p className="mb-6 text-sm text-ash">Product snapshot. Traffic & sources live in Cloudflare Web Analytics. <a href="/reports" className="text-emerald hover:underline">Reports →</a></p>
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
         {stats.map(([label, n]) => (
           <div key={label} className="rounded-lg border border-hairline bg-surface p-4">
