@@ -1,0 +1,15 @@
+name: Weekly digest
+
+on:
+  schedule:
+    - cron: "0 14 * * 1"   # every Monday 14:00 UTC
+  workflow_dispatch:        # lets you run it manually too
+
+jobs:
+  digest:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Trigger weekly digest
+        run: |
+          curl -fsS -X GET "https://unstagram.net/api/cron/digest" \
+            -H "x-cron-secret: ${{ secrets.CRON_SECRET }}"
