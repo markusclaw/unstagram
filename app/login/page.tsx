@@ -1,6 +1,7 @@
 import Link from "next/link";
 import type { Metadata } from "next";
 import { signIn } from "@/app/auth/actions";
+import ResendConfirm from "@/components/ResendConfirm";
 
 export const metadata: Metadata = { title: "Log in", description: "Log in to UNSTAGRAM — where photos become words." };
 
@@ -14,9 +15,9 @@ function friendlyError(e?: string): string | null {
 export default async function LoginPage({
   searchParams,
 }: {
-  searchParams: Promise<{ error?: string; notice?: string }>;
+  searchParams: Promise<{ error?: string; notice?: string; email?: string }>;
 }) {
-  const { error, notice } = await searchParams;
+  const { error, notice, email } = await searchParams;
   const err = friendlyError(error);
 
   return (
@@ -29,6 +30,7 @@ export default async function LoginPage({
           📧 Almost there — we sent a confirmation link to your email. Click it, then log in here.
         </p>
       )}
+      {notice === "confirm" && <ResendConfirm email={email} />}
       {err && (
         <p className="mb-4 rounded-md border border-hairline bg-surface px-3 py-2 text-sm text-paper">{err}</p>
       )}

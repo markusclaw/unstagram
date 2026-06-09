@@ -53,7 +53,7 @@ export async function signUp(formData: FormData) {
   await notify(`🆕 new user @${username} joined`);
 
   // If email confirmation is on, there's no session yet — tell them to check their inbox.
-  if (!data.session) redirect("/login?notice=confirm");
+  if (!data.session) redirect("/login?notice=confirm&email=" + encodeURIComponent(email));
 
   revalidatePath("/", "layout");
   redirect("/");
@@ -64,4 +64,13 @@ export async function signOut() {
   await supabase.auth.signOut();
   revalidatePath("/", "layout");
   redirect("/login");
+}
+
+export async function resendConfirmation(email: string): Promise<{ ok?: boolean; error?: string }> {
+  const clean = email.trim();
+  if (!clean.includes("@")) return { error: "Enter the email you signed up with." };
+  const supabase = await createClient();
+  const { error } = await supabase.auth.resend({ type: "signup", email: clean });
+  if (error) return { error: error.message };
+  return { ok: true };
 }
