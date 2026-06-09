@@ -57,9 +57,9 @@ export default function PostBody({
 
   async function share() {
     const url = `${window.location.origin}/p/${postId}`;
-    const text = parts.join(" — ").slice(0, 140);
+    // Share ONLY the link so the rich preview card stands alone (no duplicate text).
     if (navigator.share) {
-      try { await navigator.share({ title: "UNSTAGRAM", text, url }); } catch {}
+      try { await navigator.share({ url }); } catch {}
     } else {
       try { await navigator.clipboard.writeText(url); setCopied(true); setTimeout(() => setCopied(false), 2000); } catch {}
     }
