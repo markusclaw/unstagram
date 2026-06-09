@@ -12,7 +12,7 @@ type Provider = "gemini" | "openai" | "anthropic";
 const PROVIDER = (process.env.PROSE_PROVIDER || "gemini").toLowerCase() as Provider;
 
 const ALLOWED = ["image/jpeg", "image/png", "image/webp", "image/gif", "image/heic", "image/heif"];
-const MAX_BYTES = 10 * 1024 * 1024;
+const MAX_BYTES = 20 * 1024 * 1024;
 
 const MAX_CHARS = 1080;
 
@@ -27,17 +27,27 @@ async function viaGemini(prompt: string, mediaType: string, base64: string): Pro
   const key = process.env.GEMINI_API_KEY;
   if (!key) return { error: "Missing GEMINI_API_KEY", status: 503 };
   const model = process.env.GEMINI_MODEL || "gemini-2.5-flash";
-  const res = await fetch(
-    `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`,
-    {
-      method: "POST",
-      headers: { "x-goog-api-key": key, "content-type": "application/json" },
-      body: JSON.stringify({
-        contents: [{ parts: [{ text: prompt }, { inline_data: { mime_type: mediaType, data: base64 } }] }],
-      }),
-    },
-  );
-  if (!res.ok) return { error: `Gemini ${res.status}: ${(await res.text()).slice(0, 400)}`, status: 502 };
+  const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`;
+  const body = JSON.stringify({
+    contents: [{ parts: [{ text: prompt }, { inline_data: { mime_type: mediaType, data: base64 } }] }],
+  });
+  let res: Response | null = null;
+  for (let attempt = 0; attempt < 3; attempt++) {
+    res = await fetch(url, { method: "POST", headers: { "x-goog-api-key": key, "content-type": "application/json" }, body });
+    if (res.ok) break;
+    if ((res.status === 503 || res.status === 429) && attempt < 2) {
+      await new Promise((r) => setTimeout(r, 1200 * (attempt + 1)));
+      continue;
+    }
+    break;
+  }
+  if (!res || !res.ok) {
+    const status = res?.status ?? 0;
+    const msg = status === 503 || status === 429
+      ? "The describer is briefly overloaded — try again in a moment."
+      : `Gemini ${status}: ${(await res?.text().catch(() => "") ?? "").slice(0, 300)}`;
+    return { error: msg, status: 502 };
+  }
   const data: any = await res.json();
   if (data?.promptFeedback?.blockReason)
     return { error: `Gemini wouldn't describe that (${data.promptFeedback.blockReason}).`, status: 422 };
