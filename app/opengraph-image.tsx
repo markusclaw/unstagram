@@ -19,6 +19,6 @@ export default async function OgImage() {
         </div>
       </div>
     ),
-    { ...size, fonts },
+    { ...size, fonts, headers: { "cache-control": "public, max-age=86400" } },
   );
 }

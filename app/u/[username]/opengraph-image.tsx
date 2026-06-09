@@ -30,6 +30,6 @@ export default async function OgImage({ params }: { params: Promise<{ username: 
         </div>
       </div>
     ),
-    { ...size, fonts },
+    { ...size, fonts, headers: { "cache-control": "public, max-age=3600" } },
   );
 }
