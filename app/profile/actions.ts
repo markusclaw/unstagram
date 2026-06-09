@@ -32,7 +32,8 @@ export async function updateProfile(formData: FormData) {
   const displayName = String(formData.get("displayName") ?? "").trim().slice(0, 60);
   const bio = String(formData.get("bio") ?? "").trim().slice(0, 240);
   const language = String(formData.get("language") ?? "en");
-  await supabase.from("profiles").update({ display_name: displayName || null, bio, language }).eq("id", user.id);
+  const isPrivate = formData.get("private") === "on";
+  await supabase.from("profiles").update({ display_name: displayName || null, bio, language, private: isPrivate }).eq("id", user.id);
   revalidatePath("/", "layout");
   redirect(`/u/${String(formData.get("username") ?? "")}`);
 }

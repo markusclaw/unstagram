@@ -5,6 +5,7 @@ import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { adminClient } from "@/lib/supabase/admin";
 import { notify } from "@/lib/discord";
+import { sendEmail, welcomeEmail } from "@/lib/email";
 
 export async function signIn(formData: FormData) {
   const supabase = await createClient();
@@ -51,6 +52,7 @@ export async function signUp(formData: FormData) {
   if (error) redirect("/signup?error=" + encodeURIComponent(error.message));
 
   await notify(`🆕 new user @${username} joined`);
+  await sendEmail(email, "Welcome to UNSTAGRAM", welcomeEmail(username));
 
   // If email confirmation is on, there's no session yet — tell them to check their inbox.
   if (!data.session) redirect("/login?notice=confirm&email=" + encodeURIComponent(email));

@@ -26,7 +26,7 @@ export type FeedPost = {
 };
 export type Profile = {
   id: string; username: string; displayName: string | null; bio: string | null;
-  language: string; followerCount: number; followingCount: number; isFollowing: boolean; isMe: boolean;
+  language: string; private: boolean; followerCount: number; followingCount: number; isFollowing: boolean; isMe: boolean;
 };
 
 function one<T>(v: T | T[] | null | undefined): T | null {
@@ -160,7 +160,7 @@ export async function searchPosts(q: string): Promise<FeedPost[]> {
 export const getProfile = cache(async function getProfile(username: string): Promise<Profile | null> {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
-  const { data } = await supabase.from("profiles").select("id, username, display_name, bio, language").eq("username", username).maybeSingle();
+  const { data } = await supabase.from("profiles").select("id, username, display_name, bio, language, private").eq("username", username).maybeSingle();
   if (!data) return null;
   const [{ count: followers }, { count: following }, mine] = await Promise.all([
     supabase.from("follows").select("*", { count: "exact", head: true }).eq("following", data.id),
@@ -169,7 +169,7 @@ export const getProfile = cache(async function getProfile(username: string): Pro
   ]);
   return {
     id: data.id, username: data.username, displayName: data.display_name, bio: data.bio,
-    language: data.language ?? "en", followerCount: followers ?? 0, followingCount: following ?? 0,
+    language: data.language ?? "en", private: !!data.private, followerCount: followers ?? 0, followingCount: following ?? 0,
     isFollowing: !!(mine as any)?.data, isMe: user?.id === data.id,
   };
 });

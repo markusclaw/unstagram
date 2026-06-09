@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { createToken, revokeToken } from "@/app/settings/actions";
 
-type Tok = { id: string; name: string | null; token_prefix: string | null; created_at: string; last_used_at: string | null };
+type Tok = { id: string; name: string | null; token_prefix: string | null; created_at: string; last_used_at: string | null; request_count?: number };
 
 export default function TokenManager({ tokens }: { tokens: Tok[] }) {
   const [name, setName] = useState("");
@@ -46,7 +46,7 @@ export default function TokenManager({ tokens }: { tokens: Tok[] }) {
           <li key={t.id} className="flex items-center justify-between py-3 text-sm">
             <div>
               <p className="text-paper">{t.name} <span className="text-ash">· {t.token_prefix}…</span></p>
-              <p className="text-xs text-ash">{t.last_used_at ? "last used " + new Date(t.last_used_at).toLocaleDateString() : "never used"}</p>
+              <p className="text-xs text-ash">{(t.request_count ?? 0).toLocaleString()} requests · {t.last_used_at ? "last used " + new Date(t.last_used_at).toLocaleDateString() : "never used"}</p>
             </div>
             <form action={revokeToken.bind(null, t.id)}>
               <button className="text-xs text-red-400 hover:underline">revoke</button>

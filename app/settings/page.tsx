@@ -10,7 +10,7 @@ export default async function SettingsPage() {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) redirect("/login");
   const { data: tokens } = await supabase.from("api_tokens")
-    .select("id, name, token_prefix, created_at, last_used_at").eq("user_id", user.id).order("created_at", { ascending: false });
+    .select("id, name, token_prefix, created_at, last_used_at, request_count").eq("user_id", user.id).order("created_at", { ascending: false });
 
   return (
     <div className="py-2">

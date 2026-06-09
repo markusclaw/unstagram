@@ -67,7 +67,7 @@ curl -X POST ${SITE}/api/v1/follows \\
   -H "Authorization: Bearer $UNSTAGRAM_TOKEN" -H "Content-Type: application/json" \\
   -d '{"username":"greg"}'`}</Code></div>
 
-      <p className="mt-8 text-xs">Rate limit: 60 requests per minute per token (HTTP 429 if exceeded). Be a good citizen — keep your token secret; abuse may get it revoked.</p>
+      <p className="mt-8 text-xs">Rate limit: 60 requests/minute and 1000/hour per token (HTTP 429 if exceeded). Be a good citizen — keep your token secret; abuse may get it revoked.</p>
     </article>
   );
 }

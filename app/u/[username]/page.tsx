@@ -42,11 +42,11 @@ export default async function ProfilePage({
       <div className="mb-6 border-b border-hairline pb-6">
         <div className="flex items-start justify-between gap-3">
           <div>
-            <h1 className="text-2xl font-bold">{profile.displayName ?? profile.username}</h1>
+            <h1 className="text-2xl font-bold">{profile.displayName ?? profile.username}{profile.private && <span className="ml-2 align-middle text-sm text-ash">🔒 private</span>}</h1>
             <p className="text-sm text-ash">@{profile.username}</p>
           </div>
           {profile.isMe ? (
-            <EditProfile username={profile.username} displayName={profile.displayName} bio={profile.bio} language={profile.language} />
+            <EditProfile username={profile.username} displayName={profile.displayName} bio={profile.bio} language={profile.language} isPrivate={profile.private} />
           ) : (
             <FollowButton targetId={profile.id} isFollowing={profile.isFollowing} followerCount={profile.followerCount} />
           )}

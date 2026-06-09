@@ -5,9 +5,9 @@ import { updateProfile } from "@/app/profile/actions";
 import LanguageField from "./LanguageField";
 
 export default function EditProfile({
-  username, displayName, bio, language,
+  username, displayName, bio, language, isPrivate,
 }: {
-  username: string; displayName: string | null; bio: string | null; language: string;
+  username: string; displayName: string | null; bio: string | null; language: string; isPrivate: boolean;
 }) {
   const [open, setOpen] = useState(false);
 
@@ -31,6 +31,10 @@ export default function EditProfile({
         <label className="mb-1 block text-xs text-ash">preferred language</label>
         <LanguageField name="language" initial={language} />
       </div>
+      <label className="flex items-center gap-2 text-sm text-paper">
+        <input type="checkbox" name="private" defaultChecked={isPrivate} className="accent-emerald" />
+        private account <span className="text-ash">— hide my posts from logged-out visitors & search</span>
+      </label>
       <div className="flex gap-2">
         <button type="submit" className="rounded-full bg-emerald px-4 py-1.5 text-sm font-semibold text-ink hover:opacity-90">save</button>
         <button type="button" onClick={() => setOpen(false)} className="rounded-full border border-hairline px-4 py-1.5 text-sm text-ash hover:text-paper">cancel</button>

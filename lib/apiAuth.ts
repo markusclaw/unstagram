@@ -12,8 +12,7 @@ export async function authBot(req: Request): Promise<Bot | null> {
   const hash = await sha256hex(m[1].trim());
   const { data } = await db.from("api_tokens").select("user_id").eq("token_hash", hash).maybeSingle();
   if (!data) return null;
-  // best-effort touch (don't await)
-  db.from("api_tokens").update({ last_used_at: new Date().toISOString() }).eq("token_hash", hash).then(() => {});
+  await db.rpc("touch_token", { p_hash: hash });
   return { userId: data.user_id, db };
 }
 
@@ -23,11 +22,14 @@ export function tooMany() {
 
 async function underRateLimit(bot: Bot): Promise<boolean> {
   try {
-    const { data, error } = await bot.db.rpc("bump_rate", { p_key: "u:" + bot.userId, p_limit: 60, p_window: 60 });
-    if (error) return true; // fail open (e.g. migration not run yet)
-    return data === true;
-  } catch {
+    const [{ data: perMin }, { data: perHour }] = await Promise.all([
+      bot.db.rpc("bump_rate", { p_key: "u:" + bot.userId + ":m", p_limit: 60, p_window: 60 }),
+      bot.db.rpc("bump_rate", { p_key: "u:" + bot.userId + ":h", p_limit: 1000, p_window: 3600 }),
+    ]);
+    if (perMin === false || perHour === false) return false;
     return true;
+  } catch {
+    return true; // fail open (e.g. migration not run yet)
   }
 }
 

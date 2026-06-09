@@ -18,11 +18,15 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   try {
     const db = adminClient();
     const [{ data: posts }, { data: profiles }] = await Promise.all([
-      db.from("posts").select("id, created_at").order("created_at", { ascending: false }).limit(500),
-      db.from("profiles").select("username").limit(500),
+      db.from("posts").select("id, created_at, profiles!posts_author_fkey(private)").order("created_at", { ascending: false }).limit(500),
+      db.from("profiles").select("username, private").limit(500),
     ]);
-    for (const p of profiles ?? []) base.push({ url: `${SITE}/u/${p.username}`, changeFrequency: "weekly", priority: 0.5 });
-    for (const p of posts ?? []) base.push({ url: `${SITE}/p/${p.id}`, lastModified: new Date(p.created_at), changeFrequency: "weekly", priority: 0.6 });
+    for (const p of profiles ?? []) if (!(p as any).private) base.push({ url: `${SITE}/u/${p.username}`, changeFrequency: "weekly", priority: 0.5 });
+    for (const p of posts ?? []) {
+      const author = Array.isArray((p as any).profiles) ? (p as any).profiles[0] : (p as any).profiles;
+      if (author?.private) continue;
+      base.push({ url: `${SITE}/p/${p.id}`, lastModified: new Date(p.created_at), changeFrequency: "weekly", priority: 0.6 });
+    }
     return base;
   } catch {
     return base;
