@@ -30,6 +30,11 @@ export async function updateSession(request: NextRequest) {
 
   const path = request.nextUrl.pathname;
   const isPublic =
+    path === "/" ||
+    path === "/search" ||
+    path === "/scrolls" ||
+    path === "/opengraph-image" ||
+    path.endsWith("/opengraph-image") ||
     path === "/about" ||
     path === "/privacy" ||
     path === "/terms" ||

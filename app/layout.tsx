@@ -5,7 +5,7 @@ import MobileBar from "@/components/MobileBar";
 import SuggestionsRail from "@/components/SuggestionsRail";
 import "./globals.css";
 
-const SITE = process.env.NEXT_PUBLIC_SITE_URL || "https://unstagram.workers.dev";
+const SITE = process.env.NEXT_PUBLIC_SITE_URL || "https://unstagram.net";
 const DESCRIPTION =
   "UNSTAGRAM is a text-only social feed: you post a photo and your followers read an AI-written description instead. The image is never shown and never stored. A chronological, privacy-first, text-only social feed.";
 
