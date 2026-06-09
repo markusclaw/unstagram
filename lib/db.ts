@@ -1,29 +1,31 @@
 import { createClient } from "@/lib/supabase/server";
 
 export type Author = { username: string; displayName: string | null };
-export type Reply = { id: string; body: string; createdAt: string; author: Author };
+export type Reply = {
+  id: string;
+  body: string;
+  createdAt: string;
+  author: Author;
+  likeCount: number;
+  liked: boolean;
+  children: Reply[];
+};
 export type FeedPost = {
   id: string;
   prose: string;
+  proseParts: string[];
+  caption: string | null;
   createdAt: string;
   location: string | null;
   author: Author;
   replies: Reply[];
+  replyCount: number;
   likeCount: number;
-  repostCount: number;
   liked: boolean;
-  reposted: boolean;
 };
 export type Profile = {
-  id: string;
-  username: string;
-  displayName: string | null;
-  bio: string | null;
-  language: string;
-  followerCount: number;
-  followingCount: number;
-  isFollowing: boolean;
-  isMe: boolean;
+  id: string; username: string; displayName: string | null; bio: string | null;
+  language: string; followerCount: number; followingCount: number; isFollowing: boolean; isMe: boolean;
 };
 
 function one<T>(v: T | T[] | null | undefined): T | null {
@@ -34,142 +36,201 @@ function author(raw: any): Author {
   return { username: a?.username ?? "someone", displayName: a?.display_name ?? null };
 }
 
-// Plain columns + comments only — no aggregate embeds (those were failing).
 const POST_SELECT =
-  "id, prose, created_at, location, author:profiles!posts_author_fkey(username, display_name), comments(id, body, created_at, author:profiles!comments_author_fkey(username, display_name))";
+  "id, prose, prose_parts, caption, created_at, location, author:profiles!posts_author_fkey(username, display_name), comments(id, body, parent_id, created_at, author:profiles!comments_author_fkey(username, display_name))";
 
-type Tally = {
-  like: Record<string, number>;
-  repost: Record<string, number>;
-  myLikes: Set<string>;
-  myReposts: Set<string>;
-};
+type LikeTally = { like: Record<string, number>; myLikes: Set<string> };
+type CommentTally = { count: Record<string, number>; mine: Set<string> };
 
-async function tally(ids: string[], meId?: string): Promise<Tally> {
-  const empty: Tally = { like: {}, repost: {}, myLikes: new Set(), myReposts: new Set() };
-  if (ids.length === 0) return empty;
+async function tally(ids: string[], meId?: string): Promise<LikeTally> {
+  if (ids.length === 0) return { like: {}, myLikes: new Set() };
   const supabase = await createClient();
-  const [{ data: likes }, { data: reposts }] = await Promise.all([
-    supabase.from("likes").select("post_id, user_id").in("post_id", ids),
-    supabase.from("reposts").select("post_id, user_id").in("post_id", ids),
-  ]);
-  const t: Tally = { like: {}, repost: {}, myLikes: new Set(), myReposts: new Set() };
-  for (const x of likes ?? []) {
+  const { data } = await supabase.from("likes").select("post_id, user_id").in("post_id", ids);
+  const t: LikeTally = { like: {}, myLikes: new Set() };
+  for (const x of data ?? []) {
     t.like[x.post_id] = (t.like[x.post_id] ?? 0) + 1;
     if (meId && x.user_id === meId) t.myLikes.add(x.post_id);
-  }
-  for (const x of reposts ?? []) {
-    t.repost[x.post_id] = (t.repost[x.post_id] ?? 0) + 1;
-    if (meId && x.user_id === meId) t.myReposts.add(x.post_id);
   }
   return t;
 }
 
-function mapPost(row: any, t: Tally): FeedPost {
+async function commentTally(ids: string[], meId?: string): Promise<CommentTally> {
+  if (ids.length === 0) return { count: {}, mine: new Set() };
+  const supabase = await createClient();
+  const { data } = await supabase.from("comment_likes").select("comment_id, user_id").in("comment_id", ids);
+  const t: CommentTally = { count: {}, mine: new Set() };
+  for (const x of data ?? []) {
+    t.count[x.comment_id] = (t.count[x.comment_id] ?? 0) + 1;
+    if (meId && x.user_id === meId) t.mine.add(x.comment_id);
+  }
+  return t;
+}
+
+function mapPost(row: any, t: LikeTally, ct: CommentTally): FeedPost {
+  const parts = Array.isArray(row.prose_parts) && row.prose_parts.length ? row.prose_parts : [row.prose];
+  const comments: any[] = (row.comments ?? []).slice().sort((a: any, b: any) => +new Date(a.created_at) - +new Date(b.created_at));
+  const toReply = (c: any): Reply => ({
+    id: c.id, body: c.body, createdAt: c.created_at, author: author(c.author),
+    likeCount: ct.count[c.id] ?? 0, liked: ct.mine.has(c.id),
+    children: comments.filter((x) => x.parent_id === c.id).map((x) => ({
+      id: x.id, body: x.body, createdAt: x.created_at, author: author(x.author),
+      likeCount: ct.count[x.id] ?? 0, liked: ct.mine.has(x.id), children: [],
+    })),
+  });
+  const tops = comments.filter((c) => !c.parent_id).map(toReply);
   return {
-    id: row.id,
-    prose: row.prose,
-    createdAt: row.created_at,
-    location: row.location ?? null,
-    author: author(row.author),
-    likeCount: t.like[row.id] ?? 0,
-    repostCount: t.repost[row.id] ?? 0,
-    liked: t.myLikes.has(row.id),
-    reposted: t.myReposts.has(row.id),
-    replies: (row.comments ?? [])
-      .slice()
-      .sort((a: any, b: any) => +new Date(a.created_at) - +new Date(b.created_at))
-      .map((c: any) => ({ id: c.id, body: c.body, createdAt: c.created_at, author: author(c.author) })),
+    id: row.id, prose: row.prose, proseParts: parts, caption: row.caption ?? null,
+    createdAt: row.created_at, location: row.location ?? null, author: author(row.author),
+    replies: tops, replyCount: comments.length,
+    likeCount: t.like[row.id] ?? 0, liked: t.myLikes.has(row.id),
   };
+}
+
+async function mapRows(rows: any[], meId?: string): Promise<FeedPost[]> {
+  const t = await tally(rows.map((r) => r.id), meId);
+  const cids = rows.flatMap((r) => (r.comments ?? []).map((c: any) => c.id));
+  const ct = await commentTally(cids, meId);
+  return rows.map((r) => mapPost(r, t, ct));
+}
+
+async function uid(): Promise<string | undefined> {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  return user?.id;
 }
 
 export async function getFeed(): Promise<FeedPost[]> {
   const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  const { data, error } = await supabase
-    .from("posts")
-    .select(POST_SELECT)
-    .order("created_at", { ascending: false })
-    .limit(100);
+  const meId = await uid();
+  const { data, error } = await supabase.from("posts").select(POST_SELECT).order("created_at", { ascending: false }).limit(100);
   if (error) console.error("getFeed error:", error.message);
-  if (error || !data) return [];
-  const t = await tally(data.map((r: any) => r.id), user?.id);
-  return data.map((row: any) => mapPost(row, t));
+  if (!data) return [];
+  return mapRows(data, meId);
 }
 
 export async function getPostsByAuthor(authorId: string): Promise<FeedPost[]> {
   const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  const { data, error } = await supabase
-    .from("posts")
-    .select(POST_SELECT)
-    .eq("author", authorId)
-    .order("created_at", { ascending: false });
+  const meId = await uid();
+  const { data, error } = await supabase.from("posts").select(POST_SELECT).eq("author", authorId).order("created_at", { ascending: false });
   if (error) console.error("getPostsByAuthor error:", error.message);
-  if (error || !data) return [];
-  const t = await tally(data.map((r: any) => r.id), user?.id);
-  return data.map((row: any) => mapPost(row, t));
+  if (!data) return [];
+  return mapRows(data, meId);
+}
+
+export async function getPost(id: string): Promise<FeedPost | null> {
+  const supabase = await createClient();
+  const meId = await uid();
+  const { data, error } = await supabase.from("posts").select(POST_SELECT).eq("id", id).maybeSingle();
+  if (error) console.error("getPost error:", error.message);
+  if (!data) return null;
+  return (await mapRows([data], meId))[0] ?? null;
+}
+
+export async function searchProfiles(q: string): Promise<{ username: string; displayName: string | null }[]> {
+  const safe = q.replace(/[%,()*]/g, " ").trim();
+  if (!safe) return [];
+  const supabase = await createClient();
+  const { data } = await supabase.from("profiles").select("username, display_name")
+    .or(`username.ilike.%${safe}%,display_name.ilike.%${safe}%`).limit(20);
+  return (data ?? []).map((p: any) => ({ username: p.username, displayName: p.display_name }));
+}
+
+export async function searchPosts(q: string): Promise<FeedPost[]> {
+  const safe = q.replace(/[%,()*]/g, " ").trim();
+  if (!safe) return [];
+  const supabase = await createClient();
+  const meId = await uid();
+  const { data, error } = await supabase.from("posts").select(POST_SELECT)
+    .or(`prose.ilike.%${safe}%,caption.ilike.%${safe}%,location.ilike.%${safe}%`)
+    .order("created_at", { ascending: false }).limit(50);
+  if (error) console.error("searchPosts error:", error.message);
+  if (!data) return [];
+  return mapRows(data, meId);
 }
 
 export async function getProfile(username: string): Promise<Profile | null> {
   const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  const { data } = await supabase
-    .from("profiles")
-    .select("id, username, display_name, bio, language")
-    .eq("username", username)
-    .maybeSingle();
+  const { data: { user } } = await supabase.auth.getUser();
+  const { data } = await supabase.from("profiles").select("id, username, display_name, bio, language").eq("username", username).maybeSingle();
   if (!data) return null;
-
   const [{ count: followers }, { count: following }, mine] = await Promise.all([
     supabase.from("follows").select("*", { count: "exact", head: true }).eq("following", data.id),
     supabase.from("follows").select("*", { count: "exact", head: true }).eq("follower", data.id),
-    user
-      ? supabase.from("follows").select("follower").eq("follower", user.id).eq("following", data.id).maybeSingle()
-      : Promise.resolve({ data: null }),
+    user ? supabase.from("follows").select("follower").eq("follower", user.id).eq("following", data.id).maybeSingle() : Promise.resolve({ data: null }),
   ]);
-
   return {
-    id: data.id,
-    username: data.username,
-    displayName: data.display_name,
-    bio: data.bio,
-    language: data.language ?? "en",
-    followerCount: followers ?? 0,
-    followingCount: following ?? 0,
-    isFollowing: !!(mine as any)?.data,
-    isMe: user?.id === data.id,
+    id: data.id, username: data.username, displayName: data.display_name, bio: data.bio,
+    language: data.language ?? "en", followerCount: followers ?? 0, followingCount: following ?? 0,
+    isFollowing: !!(mine as any)?.data, isMe: user?.id === data.id,
   };
 }
 
+export type ActivityItem = { id: string; type: "follow" | "like" | "repost" | "reply"; actor: string; postId?: string; snippet?: string; createdAt: string };
 
-export async function getPost(id: string): Promise<FeedPost | null> {
+export async function getActivity(): Promise<ActivityItem[]> {
   const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  const { data, error } = await supabase.from("posts").select(POST_SELECT).eq("id", id).maybeSingle();
-  if (error) console.error("getPost error:", error.message);
-  if (!data) return null;
-  const t = await tally([data.id], user?.id);
-  return mapPost(data, t);
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return [];
+  const { data: myPosts } = await supabase.from("posts").select("id, prose").eq("author", user.id);
+  const myPostIds = (myPosts ?? []).map((p: any) => p.id);
+  const proseById = new Map<string, string>((myPosts ?? []).map((p: any) => [p.id, p.prose]));
+  const noRows = Promise.resolve({ data: [] as any[] });
+  const [follows, likes, comments] = await Promise.all([
+    supabase.from("follows").select("follower, created_at").eq("following", user.id),
+    myPostIds.length ? supabase.from("likes").select("user_id, post_id, created_at").in("post_id", myPostIds).neq("user_id", user.id) : noRows,
+    myPostIds.length ? supabase.from("comments").select("author, post_id, body, created_at").in("post_id", myPostIds).neq("author", user.id) : noRows,
+  ]);
+  const actorIds = new Set<string>();
+  (follows.data ?? []).forEach((x: any) => actorIds.add(x.follower));
+  (likes.data ?? []).forEach((x: any) => actorIds.add(x.user_id));
+  (comments.data ?? []).forEach((x: any) => actorIds.add(x.author));
+  let nameById = new Map<string, string>();
+  if (actorIds.size) {
+    const { data: profs } = await supabase.from("profiles").select("id, username").in("id", Array.from(actorIds));
+    nameById = new Map((profs ?? []).map((p: any) => [p.id, p.username]));
+  }
+  const snip = (id: string) => { const t = proseById.get(id) ?? ""; return t.length > 70 ? t.slice(0, 70) + "…" : t; };
+  const name = (id: string) => nameById.get(id) ?? "someone";
+  const items: ActivityItem[] = [];
+  for (const f of follows.data ?? []) items.push({ id: "f" + f.follower + f.created_at, type: "follow", actor: name(f.follower), createdAt: f.created_at });
+  for (const l of likes.data ?? []) items.push({ id: "l" + l.user_id + l.post_id, type: "like", actor: name(l.user_id), postId: l.post_id, snippet: snip(l.post_id), createdAt: l.created_at });
+  for (const c of comments.data ?? []) items.push({ id: "c" + c.author + c.post_id + c.created_at, type: "reply", actor: name(c.author), postId: c.post_id, snippet: c.body, createdAt: c.created_at });
+  items.sort((a, b) => +new Date(b.createdAt) - +new Date(a.createdAt));
+  return items.slice(0, 60);
+}
+
+export async function getUnreadActivityCount(): Promise<number> {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return 0;
+  const { data: prof } = await supabase.from("profiles").select("activity_seen_at").eq("id", user.id).maybeSingle();
+  const seen = prof?.activity_seen_at ?? "1970-01-01T00:00:00Z";
+  const { data: myPosts } = await supabase.from("posts").select("id").eq("author", user.id);
+  const ids = (myPosts ?? []).map((p: any) => p.id);
+  const head = { count: "exact" as const, head: true };
+  const zero = Promise.resolve({ count: 0 });
+  const [f, l, c] = await Promise.all([
+    supabase.from("follows").select("*", head).eq("following", user.id).gt("created_at", seen),
+    ids.length ? supabase.from("likes").select("*", head).in("post_id", ids).neq("user_id", user.id).gt("created_at", seen) : zero,
+    ids.length ? supabase.from("comments").select("*", head).in("post_id", ids).neq("author", user.id).gt("created_at", seen) : zero,
+  ]);
+  return (f.count ?? 0) + (l.count ?? 0) + (c.count ?? 0);
+}
+
+export async function markActivitySeen(): Promise<void> {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return;
+  await supabase.from("profiles").update({ activity_seen_at: new Date().toISOString() }).eq("id", user.id);
 }
 
 export type StoryGroup = { username: string; displayName: string | null; lines: string[] };
 
 export async function getActiveStories(): Promise<StoryGroup[]> {
   const supabase = await createClient();
-  const { data, error } = await supabase
-    .from("stories")
+  const { data, error } = await supabase.from("stories")
     .select("id, body, created_at, author:profiles!stories_author_fkey(username, display_name)")
-    .gt("expires_at", new Date().toISOString())
-    .order("created_at", { ascending: true });
+    .gt("expires_at", new Date().toISOString()).order("created_at", { ascending: true });
   if (error) console.error("getActiveStories error:", error.message);
   if (!data) return [];
   const map = new Map<string, StoryGroup>();
@@ -182,144 +243,11 @@ export async function getActiveStories(): Promise<StoryGroup[]> {
   return Array.from(map.values());
 }
 
-export type ActivityItem = {
-  id: string;
-  type: "follow" | "like" | "repost" | "reply";
-  actor: string;
-  postId?: string;
-  snippet?: string;
-  createdAt: string;
-};
-
-export async function getActivity(): Promise<ActivityItem[]> {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) return [];
-
-  const { data: myPosts } = await supabase.from("posts").select("id, prose").eq("author", user.id);
-  const myPostIds = (myPosts ?? []).map((p: any) => p.id);
-  const proseById = new Map<string, string>((myPosts ?? []).map((p: any) => [p.id, p.prose]));
-  const noRows = Promise.resolve({ data: [] as any[] });
-
-  const [follows, likes, reposts, comments] = await Promise.all([
-    supabase.from("follows").select("follower, created_at").eq("following", user.id),
-    myPostIds.length ? supabase.from("likes").select("user_id, post_id, created_at").in("post_id", myPostIds).neq("user_id", user.id) : noRows,
-    myPostIds.length ? supabase.from("reposts").select("user_id, post_id, created_at").in("post_id", myPostIds).neq("user_id", user.id) : noRows,
-    myPostIds.length ? supabase.from("comments").select("author, post_id, body, created_at").in("post_id", myPostIds).neq("author", user.id) : noRows,
-  ]);
-
-  const actorIds = new Set<string>();
-  (follows.data ?? []).forEach((x: any) => actorIds.add(x.follower));
-  (likes.data ?? []).forEach((x: any) => actorIds.add(x.user_id));
-  (reposts.data ?? []).forEach((x: any) => actorIds.add(x.user_id));
-  (comments.data ?? []).forEach((x: any) => actorIds.add(x.author));
-
-  let nameById = new Map<string, string>();
-  if (actorIds.size) {
-    const { data: profs } = await supabase.from("profiles").select("id, username").in("id", Array.from(actorIds));
-    nameById = new Map((profs ?? []).map((p: any) => [p.id, p.username]));
-  }
-  const snip = (id: string) => {
-    const t = proseById.get(id) ?? "";
-    return t.length > 70 ? t.slice(0, 70) + "…" : t;
-  };
-  const name = (id: string) => nameById.get(id) ?? "someone";
-
-  const items: ActivityItem[] = [];
-  for (const f of follows.data ?? [])
-    items.push({ id: "f" + f.follower + f.created_at, type: "follow", actor: name(f.follower), createdAt: f.created_at });
-  for (const l of likes.data ?? [])
-    items.push({ id: "l" + l.user_id + l.post_id, type: "like", actor: name(l.user_id), postId: l.post_id, snippet: snip(l.post_id), createdAt: l.created_at });
-  for (const r of reposts.data ?? [])
-    items.push({ id: "r" + r.user_id + r.post_id, type: "repost", actor: name(r.user_id), postId: r.post_id, snippet: snip(r.post_id), createdAt: r.created_at });
-  for (const c of comments.data ?? [])
-    items.push({ id: "c" + c.author + c.post_id + c.created_at, type: "reply", actor: name(c.author), postId: c.post_id, snippet: c.body, createdAt: c.created_at });
-
-  items.sort((a, b) => +new Date(b.createdAt) - +new Date(a.createdAt));
-  return items.slice(0, 60);
-}
-
-export async function getUnreadActivityCount(): Promise<number> {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) return 0;
-
-  const { data: prof } = await supabase.from("profiles").select("activity_seen_at").eq("id", user.id).maybeSingle();
-  const seen = prof?.activity_seen_at ?? "1970-01-01T00:00:00Z";
-
-  const { data: myPosts } = await supabase.from("posts").select("id").eq("author", user.id);
-  const ids = (myPosts ?? []).map((p: any) => p.id);
-  const head = { count: "exact" as const, head: true };
-  const zero = Promise.resolve({ count: 0 });
-
-  const [f, l, r, c] = await Promise.all([
-    supabase.from("follows").select("*", head).eq("following", user.id).gt("created_at", seen),
-    ids.length ? supabase.from("likes").select("*", head).in("post_id", ids).neq("user_id", user.id).gt("created_at", seen) : zero,
-    ids.length ? supabase.from("reposts").select("*", head).in("post_id", ids).neq("user_id", user.id).gt("created_at", seen) : zero,
-    ids.length ? supabase.from("comments").select("*", head).in("post_id", ids).neq("author", user.id).gt("created_at", seen) : zero,
-  ]);
-  return (f.count ?? 0) + (l.count ?? 0) + (r.count ?? 0) + (c.count ?? 0);
-}
-
-export async function markActivitySeen(): Promise<void> {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) return;
-  await supabase.from("profiles").update({ activity_seen_at: new Date().toISOString() }).eq("id", user.id);
-}
-
-function safeLike(q: string): string {
-  return q.replace(/[%,()*]/g, " ").trim();
-}
-
-export async function searchProfiles(q: string): Promise<{ username: string; displayName: string | null }[]> {
-  const safe = safeLike(q);
-  if (!safe) return [];
-  const supabase = await createClient();
-  const { data } = await supabase
-    .from("profiles")
-    .select("username, display_name")
-    .or(`username.ilike.%${safe}%,display_name.ilike.%${safe}%`)
-    .limit(20);
-  return (data ?? []).map((p: any) => ({ username: p.username, displayName: p.display_name }));
-}
-
-export async function searchPosts(q: string): Promise<FeedPost[]> {
-  const safe = safeLike(q);
-  if (!safe) return [];
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  const { data, error } = await supabase
-    .from("posts")
-    .select(POST_SELECT)
-    .or(`prose.ilike.%${safe}%,location.ilike.%${safe}%`)
-    .order("created_at", { ascending: false })
-    .limit(50);
-  if (error) console.error("searchPosts error:", error.message);
-  if (!data) return [];
-  const t = await tally(data.map((r: any) => r.id), user?.id);
-  return data.map((r: any) => mapPost(r, t));
-}
-
 export async function getCurrentProfile(): Promise<{ id: string; username: string; displayName: string | null; language: string } | null> {
   const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const { data: { user } } = await supabase.auth.getUser();
   if (!user) return null;
-  const { data } = await supabase
-    .from("profiles")
-    .select("id, username, display_name, language")
-    .eq("id", user.id)
-    .maybeSingle();
+  const { data } = await supabase.from("profiles").select("id, username, display_name, language").eq("id", user.id).maybeSingle();
   if (!data) return null;
   return { id: data.id, username: data.username, displayName: data.display_name, language: data.language ?? "en" };
 }

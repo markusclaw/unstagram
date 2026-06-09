@@ -23,3 +23,11 @@ body {
 }
 
 ::selection { background: #3D8B6A; color: #0D0D0D; }
+
+@keyframes heartpop {
+  0% { opacity: 0; transform: scale(0.3); }
+  25% { opacity: 1; transform: scale(1.15); }
+  60% { opacity: 1; transform: scale(1); }
+  100% { opacity: 0; transform: scale(1.25); }
+}
+.heart-pop { animation: heartpop 0.8s ease forwards; }

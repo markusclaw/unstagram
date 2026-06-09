@@ -1,7 +1,9 @@
 import Link from "next/link";
 import type { FeedPost } from "@/lib/db";
 import { timeAgo } from "@/lib/format";
-import EngagementBar from "./EngagementBar";
+import PostBody from "./PostBody";
+import Caption from "./Caption";
+import CommentList from "./CommentList";
 import { addReply } from "@/app/post/actions";
 import ReportButton from "./ReportButton";
 
@@ -30,37 +32,17 @@ export default function ProseCard({ post }: { post: FeedPost }) {
         <span className="ml-auto"><ReportButton postId={post.id} /></span>
       </div>
 
-      {/* where the photo would be. there is no photo. that's the post. */}
-      <p dir="auto" className="prose-body">{post.prose}</p>
+      <PostBody postId={post.id} parts={post.proseParts} likeCount={post.likeCount} replyCount={post.replyCount} liked={post.liked} />
 
-      {post.location && (
-        <p className="mt-2 text-xs text-ash">
-          <PinIcon /> {post.location}
-        </p>
-      )}
+      {post.caption && <Caption text={post.caption} />}
 
-      <EngagementBar
-        postId={post.id}
-        prose={post.prose}
-        likeCount={post.likeCount}
-        replyCount={post.replies.length}
-        liked={post.liked}
-      />
+      {post.location && <p className="mt-2 text-xs text-ash"><PinIcon /> {post.location}</p>}
 
-      {post.replies.length > 0 && (
-        <ul className="mt-4 space-y-3 border-l border-hairline pl-4">
-          {post.replies.map((r) => (
-            <li key={r.id} className="text-sm">
-              <Link href={`/u/${r.author.username}`} className="text-ash hover:text-emerald">@{r.author.username}</Link>{" "}
-              <span className="text-paper">{r.body}</span>
-            </li>
-          ))}
-        </ul>
-      )}
+      <CommentList replies={post.replies} postId={post.id} />
 
       <form action={addReply} className="mt-4 flex gap-2">
         <input type="hidden" name="postId" value={post.id} />
-        <input name="body" required maxLength={1080} placeholder="reply in words…"
+        <input name="body" required maxLength={1080} placeholder="add a comment…"
           className="flex-1 rounded-full border border-hairline bg-surface px-4 py-2 text-sm text-paper placeholder:text-ash focus:border-emerald focus:outline-none" />
         <button className="rounded-full border border-hairline px-4 py-2 text-sm text-ash hover:text-paper">send</button>
       </form>

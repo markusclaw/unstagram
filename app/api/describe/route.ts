@@ -16,11 +16,10 @@ const MAX_BYTES = 10 * 1024 * 1024;
 
 const MAX_CHARS = 1080;
 
-const PROMPT = `You are the voice of UNSTAGRAM, where photos are never shown — only described.
-Describe this image in evocative, atmospheric prose — wry and warm.
-Write as much or as little as the image truly deserves: let a simple shot be a sentence or two, and a rich, layered scene run longer (up to about 1080 characters). Never pad to fill space — length should follow the image, not a quota.
-Capture the light, mood, texture, and the telling details that matter.
-No hashtags, no quotes, no emoji. Do not mention that this is a photo or image.`;
+const PROMPT = `You are the voice of UNSTAGRAM. The reader will NEVER see this photo — your words are the only way they experience it, so describe it well enough that they can fully picture AND appreciate it.
+Convey two layers: (1) the CONTENT — what's happening, the mood, the small telling details and the story; and (2) the PHOTOGRAPHIC COMPOSITION, so a photography enthusiast can appreciate the craft: framing and angle, the direction and quality of light, depth of field and focus, color palette and contrast, perspective, balance, and any notable technique.
+Write evocative, atmospheric prose — wry and warm, woven together (not a checklist). Let length follow the image, up to about 1080 characters; never pad.
+No hashtags, no quotes, no emoji. Do not say "this is a photo/image" — render it as if the reader is standing inside the frame while also admiring how it was captured.`;
 
 type Result = { prose?: string; error?: string; status?: number };
 
@@ -110,10 +109,12 @@ function capChars(text: string, max: number): string {
 export async function POST(req: Request) {
   let file: File | null = null;
   let lang = "en";
+  let caption = "";
   try {
     const form = await req.formData();
     file = form.get("image") as File | null;
     lang = String(form.get("lang") ?? "en");
+    caption = String(form.get("caption") ?? "");
   } catch {
     return NextResponse.json({ error: "Expected multipart form-data with an 'image' field." }, { status: 400 });
   }
@@ -132,7 +133,10 @@ export async function POST(req: Request) {
   const base64 = btoa(binary);
 
   const langName = languageName(normalizeLang(lang));
-  const prompt = PROMPT + ` Write the entire description in ${langName}.`;
+  const hint = caption.trim()
+    ? ` The photographer added this caption as a hint — use it only if it genuinely clarifies an abstract or ambiguous image, and never just repeat it: "${caption.trim().slice(0, 200)}".`
+    : "";
+  const prompt = PROMPT + ` Write the entire description in ${langName}.` + hint;
   const run = PROVIDER === "openai" ? viaOpenAI : PROVIDER === "anthropic" ? viaAnthropic : viaGemini;
   const { prose, error, status } = await run(prompt, mediaType, base64);
 
