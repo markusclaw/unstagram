@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { languageName, normalizeLang } from "@/lib/languages";
+import { createClient } from "@/lib/supabase/server";
 
 export const dynamic = "force-dynamic";
 
@@ -117,6 +118,15 @@ function capChars(text: string, max: number): string {
 }
 
 export async function POST(req: Request) {
+  // Require a logged-in user + rate limit (this route costs money per call).
+  const auth = await createClient();
+  const { data: { user } } = await auth.auth.getUser();
+  if (!user) return NextResponse.json({ error: "Sign in to describe images." }, { status: 401 });
+  try {
+    const { data: allowed } = await auth.rpc("bump_rate", { p_key: "describe:" + user.id, p_limit: 20, p_window: 60 });
+    if (allowed === false) return NextResponse.json({ error: "Slow down — too many in a minute." }, { status: 429 });
+  } catch { /* fail open if rate table not set up */ }
+
   let file: File | null = null;
   let lang = "en";
   let caption = "";

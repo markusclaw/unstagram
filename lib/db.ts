@@ -1,3 +1,4 @@
+import { cache } from "react";
 import { createClient } from "@/lib/supabase/server";
 
 export type Author = { username: string; displayName: string | null };
@@ -125,14 +126,14 @@ export async function getPostsByAuthor(authorId: string): Promise<FeedPost[]> {
   return mapRows(data, meId);
 }
 
-export async function getPost(id: string): Promise<FeedPost | null> {
+export const getPost = cache(async function getPost(id: string): Promise<FeedPost | null> {
   const supabase = await createClient();
   const meId = await uid();
   const { data, error } = await supabase.from("posts").select(POST_SELECT).eq("id", id).maybeSingle();
   if (error) console.error("getPost error:", error.message);
   if (!data) return null;
   return (await mapRows([data], meId))[0] ?? null;
-}
+});
 
 export async function searchProfiles(q: string): Promise<{ username: string; displayName: string | null }[]> {
   const safe = q.replace(/[%,()*]/g, " ").trim();
@@ -156,7 +157,7 @@ export async function searchPosts(q: string): Promise<FeedPost[]> {
   return mapRows(data, meId);
 }
 
-export async function getProfile(username: string): Promise<Profile | null> {
+export const getProfile = cache(async function getProfile(username: string): Promise<Profile | null> {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
   const { data } = await supabase.from("profiles").select("id, username, display_name, bio, language").eq("username", username).maybeSingle();
@@ -171,7 +172,7 @@ export async function getProfile(username: string): Promise<Profile | null> {
     language: data.language ?? "en", followerCount: followers ?? 0, followingCount: following ?? 0,
     isFollowing: !!(mine as any)?.data, isMe: user?.id === data.id,
   };
-}
+});
 
 export type ActivityItem = { id: string; type: "follow" | "like" | "repost" | "reply"; actor: string; postId?: string; snippet?: string; createdAt: string };
 
@@ -207,7 +208,7 @@ export async function getActivity(): Promise<ActivityItem[]> {
   return items.slice(0, 60);
 }
 
-export async function getUnreadActivityCount(): Promise<number> {
+export const getUnreadActivityCount = cache(async function getUnreadActivityCount(): Promise<number> {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return 0;
@@ -223,7 +224,7 @@ export async function getUnreadActivityCount(): Promise<number> {
     ids.length ? supabase.from("comments").select("*", head).in("post_id", ids).neq("author", user.id).gt("created_at", seen) : zero,
   ]);
   return (f.count ?? 0) + (l.count ?? 0) + (c.count ?? 0);
-}
+});
 
 export async function markActivitySeen(): Promise<void> {
   const supabase = await createClient();
@@ -251,11 +252,11 @@ export async function getActiveStories(): Promise<StoryGroup[]> {
   return Array.from(map.values());
 }
 
-export async function getCurrentProfile(): Promise<{ id: string; username: string; displayName: string | null; language: string } | null> {
+export const getCurrentProfile = cache(async function getCurrentProfile(): Promise<{ id: string; username: string; displayName: string | null; language: string } | null> {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return null;
   const { data } = await supabase.from("profiles").select("id, username, display_name, language").eq("id", user.id).maybeSingle();
   if (!data) return null;
   return { id: data.id, username: data.username, displayName: data.display_name, language: data.language ?? "en" };
-}
+});

@@ -59,7 +59,7 @@ export default async function SuggestionsRail() {
       )}
 
       <footer className="mt-8 space-y-1 text-[11px] text-ash">
-        <p><Link href="/about" className="hover:text-paper">About</Link> · <Link href="/developers" className="hover:text-paper">Developers</Link> · Help · Privacy · Terms</p>
+        <p><Link href="/about" className="hover:text-paper">About</Link> · <Link href="/developers" className="hover:text-paper">Developers</Link> · <Link href="/privacy" className="hover:text-paper">Privacy</Link> · <Link href="/terms" className="hover:text-paper">Terms</Link></p>
         <p>© 2026 UNSTAGRAM</p>
       </footer>
     </aside>

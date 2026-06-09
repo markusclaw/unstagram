@@ -36,6 +36,16 @@ export default function AboutPage() {
     "@context": "https://schema.org",
     "@graph": [
       {
+        "@type": "WebSite",
+        name: "UNSTAGRAM",
+        url: "https://unstagram.net",
+        potentialAction: {
+          "@type": "SearchAction",
+          target: "https://unstagram.net/search?q={query}",
+          "query-input": "required name=query",
+        },
+      },
+      {
         "@type": "WebApplication",
         name: "UNSTAGRAM",
         applicationCategory: "SocialNetworkingApplication",

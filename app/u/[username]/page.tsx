@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import PostTile from "@/components/PostTile";
 import FollowButton from "@/components/FollowButton";
@@ -5,6 +6,20 @@ import EditProfile from "@/components/EditProfile";
 import { getProfile, getPostsByAuthor } from "@/lib/db";
 
 export const dynamic = "force-dynamic";
+
+export async function generateMetadata({ params }: { params: Promise<{ username: string }> }): Promise<Metadata> {
+  const { username } = await params;
+  const p = await getProfile(username);
+  if (!p) return { title: "Profile" };
+  const title = `${p.displayName ?? p.username} (@${p.username})`;
+  const desc = p.bio || `@${p.username} on UNSTAGRAM — photos described in words.`;
+  return {
+    title, description: desc,
+    alternates: { canonical: `/u/${username}` },
+    openGraph: { type: "profile", title, description: desc, url: `/u/${username}` },
+    twitter: { card: "summary", title, description: desc },
+  };
+}
 
 export default async function ProfilePage({
   params,
@@ -16,8 +31,14 @@ export default async function ProfilePage({
   if (!profile) return notFound();
   const posts = await getPostsByAuthor(profile.id);
 
+  const ld = {
+    "@context": "https://schema.org",
+    "@type": "ProfilePage",
+    mainEntity: { "@type": "Person", name: profile.displayName ?? profile.username, alternateName: "@" + profile.username, description: profile.bio ?? undefined },
+  };
   return (
     <div>
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(ld) }} />
       <div className="mb-6 border-b border-hairline pb-6">
         <div className="flex items-start justify-between gap-3">
           <div>
