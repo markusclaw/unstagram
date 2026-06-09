@@ -99,13 +99,21 @@ async function uid(): Promise<string | undefined> {
   return user?.id;
 }
 
-export async function getFeed(): Promise<FeedPost[]> {
+function hotScore(p: FeedPost): number {
+  const hours = (Date.now() - +new Date(p.createdAt)) / 3_600_000;
+  const engagement = p.likeCount + 2 * p.replyCount;
+  return (engagement + 1) / Math.pow(hours + 2, 1.5);
+}
+
+export async function getFeed(sort: "hot" | "new" = "hot"): Promise<FeedPost[]> {
   const supabase = await createClient();
   const meId = await uid();
   const { data, error } = await supabase.from("posts").select(POST_SELECT).order("created_at", { ascending: false }).limit(100);
   if (error) console.error("getFeed error:", error.message);
   if (!data) return [];
-  return mapRows(data, meId);
+  const posts = await mapRows(data, meId);
+  if (sort === "new") return posts; // already newest-first
+  return posts.sort((a, b) => hotScore(b) - hotScore(a));
 }
 
 export async function getPostsByAuthor(authorId: string): Promise<FeedPost[]> {

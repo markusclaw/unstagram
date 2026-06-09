@@ -32,11 +32,12 @@ export default function ProseCard({ post }: { post: FeedPost }) {
         <span className="ml-auto"><ReportButton postId={post.id} /></span>
       </div>
 
+      {post.location && <p className="mb-3 -mt-1 text-xs text-ash"><PinIcon /> {post.location}</p>}
+
       <PostBody postId={post.id} parts={post.proseParts} likeCount={post.likeCount} replyCount={post.replyCount} liked={post.liked} />
 
       {post.caption && <Caption text={post.caption} />}
 
-      {post.location && <p className="mt-2 text-xs text-ash"><PinIcon /> {post.location}</p>}
 
       <CommentList replies={post.replies} postId={post.id} />
 
