@@ -3,14 +3,30 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
+import { adminClient } from "@/lib/supabase/admin";
+import { notify } from "@/lib/discord";
 
 export async function signIn(formData: FormData) {
   const supabase = await createClient();
-  const email = String(formData.get("email") ?? "");
+  const identifier = String(formData.get("email") ?? "").trim();
   const password = String(formData.get("password") ?? "");
 
+  // Allow logging in with a username: resolve it to the account email
+  // server-side (the email is never exposed to the client).
+  let email = identifier;
+  if (identifier && !identifier.includes("@") && process.env.SUPABASE_SERVICE_ROLE_KEY) {
+    try {
+      const admin = adminClient();
+      const { data: prof } = await admin.from("profiles").select("id").eq("username", identifier.toLowerCase()).maybeSingle();
+      if (prof?.id) {
+        const { data } = await admin.auth.admin.getUserById(prof.id);
+        if (data?.user?.email) email = data.user.email;
+      }
+    } catch { /* fall back to treating it as an email */ }
+  }
+
   const { error } = await supabase.auth.signInWithPassword({ email, password });
-  if (error) redirect("/login?error=" + encodeURIComponent(error.message));
+  if (error) redirect("/login?error=" + encodeURIComponent("Wrong username/email or password."));
 
   revalidatePath("/", "layout");
   redirect("/");
@@ -27,12 +43,17 @@ export async function signUp(formData: FormData) {
     redirect("/signup?error=" + encodeURIComponent("Username: 3–20 chars, a–z 0–9 . _"));
   }
 
-  const { error } = await supabase.auth.signUp({
+  const { data, error } = await supabase.auth.signUp({
     email,
     password,
     options: { data: { username, language } },
   });
   if (error) redirect("/signup?error=" + encodeURIComponent(error.message));
+
+  await notify(`🆕 new user @${username} joined`);
+
+  // If email confirmation is on, there's no session yet — tell them to check their inbox.
+  if (!data.session) redirect("/login?notice=confirm");
 
   revalidatePath("/", "layout");
   redirect("/");

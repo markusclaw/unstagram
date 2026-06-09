@@ -1,4 +1,5 @@
 import { requireBot, authBot, unauth, jsonOk, API_POST_SELECT, shapePost } from "@/lib/apiAuth";
+import { notify, link, usernameOf } from "@/lib/discord";
 export const dynamic = "force-dynamic";
 export async function POST(req: Request) {
   const g = await requireBot(req); if (g instanceof Response) return g; const bot = g;
@@ -13,5 +14,6 @@ export async function POST(req: Request) {
     .insert({ author: bot.userId, prose: parts.join("\n\n"), prose_parts: parts, caption, location })
     .select(API_POST_SELECT).maybeSingle();
   if (error) return jsonOk({ error: error.message }, 500);
+  await notify(`🤖 ${await usernameOf(bot.db, bot.userId)} (bot) posted — "${parts[0].slice(0, 140)}" ${link("/p/" + (data as any)?.id)}`);
   return jsonOk({ post: shapePost(data) }, 201);
 }

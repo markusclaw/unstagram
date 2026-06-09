@@ -5,12 +5,20 @@ import LanguageField from "@/components/LanguageField";
 
 export const metadata: Metadata = { title: "Sign up", description: "Create an UNSTAGRAM account — post a photo, your followers read the description." };
 
+function friendlyError(e?: string): string | null {
+  if (!e) return null;
+  if (e.toLowerCase().includes("already") || e.toLowerCase().includes("registered"))
+    return "That email is already registered. Try logging in.";
+  return e;
+}
+
 export default async function SignupPage({
   searchParams,
 }: {
   searchParams: Promise<{ error?: string }>;
 }) {
-  const { error } = await searchParams;
+  const { error: rawError } = await searchParams;
+  const error = friendlyError(rawError);
   return (
     <div className="mx-auto max-w-sm py-16">
       <h1 className="mb-1 text-center text-2xl font-bold">Join UNSTAGRAM</h1>

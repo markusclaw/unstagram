@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
+import { notify, usernameOf, link } from "@/lib/discord";
 
 export async function toggleFollow(targetId: string, isFollowing: boolean) {
   const supabase = await createClient();
@@ -16,6 +17,8 @@ export async function toggleFollow(targetId: string, isFollowing: boolean) {
     await supabase.from("follows").delete().eq("follower", user.id).eq("following", targetId);
   } else {
     await supabase.from("follows").upsert({ follower: user.id, following: targetId });
+    const [me, them] = [await usernameOf(supabase, user.id), await usernameOf(supabase, targetId)];
+    await notify(`➕ ${me} followed ${them}`);
   }
   revalidatePath("/", "layout");
 }
