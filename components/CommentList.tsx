@@ -19,20 +19,38 @@ function Row({ c, threadId, onReply }: { c: Reply; threadId: string; onReply: (t
   );
 }
 
-export default function CommentList({ replies, postId }: { replies: Reply[]; postId: string }) {
+export default function CommentList({
+  replies, postId, total, detail = false,
+}: {
+  replies: Reply[]; postId: string; total: number; detail?: boolean;
+}) {
   const [open, setOpen] = useState<string | null>(null);
   const [prefill, setPrefill] = useState("");
   function onReply(threadId: string, username: string) { setOpen(threadId); setPrefill("@" + username + " "); }
 
   if (replies.length === 0) return null;
+
+  const threads = detail ? replies : replies.slice(0, 2);
+  const childLimit = detail ? Infinity : 2;
+  let shown = 0;
+  threads.forEach((t) => { shown += 1 + Math.min(t.children.length, childLimit); });
+  const more = total - shown;
+
   return (
     <ul className="mt-4 space-y-3 border-l border-hairline pl-4">
-      {replies.map((t) => (
+      {!detail && more > 0 && (
+        <li>
+          <Link href={`/p/${postId}`} className="text-xs text-ash hover:text-paper">View all {total} comments</Link>
+        </li>
+      )}
+      {threads.map((t) => (
         <li key={t.id} className="space-y-2">
           <Row c={t} threadId={t.id} onReply={onReply} />
           {t.children.length > 0 && (
             <div className="ml-4 space-y-2">
-              {t.children.map((ch) => <Row key={ch.id} c={ch} threadId={t.id} onReply={onReply} />)}
+              {(detail ? t.children : t.children.slice(0, 2)).map((ch) => (
+                <Row key={ch.id} c={ch} threadId={t.id} onReply={onReply} />
+              ))}
             </div>
           )}
           {open === t.id && (

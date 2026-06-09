@@ -9,6 +9,6 @@ export default async function PostPage({ params }: { params: Promise<{ id: strin
   const post = await getPost(id);
   if (!post) return notFound();
   return <div className="py-2">
-    <ProseCard post={post} />
+    <ProseCard post={post} detail />
   </div>;
 }

@@ -25,9 +25,12 @@ export default async function SuggestionsRail() {
             <Link href={`/u/${me.username}`} className="truncate text-sm font-semibold text-paper hover:text-emerald">@{me.username}</Link>
             <p className="truncate text-sm text-ash">{me.displayName ?? me.username}</p>
           </div>
-          <form action={signOut}>
-            <button className="text-xs font-semibold text-emerald hover:text-paper">Log out</button>
-          </form>
+          <div className="flex items-center gap-3">
+            <Link href="/settings" className="text-xs font-semibold text-ash hover:text-paper">Settings</Link>
+            <form action={signOut}>
+              <button className="text-xs font-semibold text-emerald hover:text-paper">Log out</button>
+            </form>
+          </div>
         </div>
       ) : (
         <p className="mb-6 text-sm text-ash">
@@ -56,7 +59,7 @@ export default async function SuggestionsRail() {
       )}
 
       <footer className="mt-8 space-y-1 text-[11px] text-ash">
-        <p><Link href="/about" className="hover:text-paper">About</Link> · Help · Press · API · Jobs · Privacy · Terms</p>
+        <p><Link href="/about" className="hover:text-paper">About</Link> · <Link href="/developers" className="hover:text-paper">Developers</Link> · Help · Privacy · Terms</p>
         <p>© 2026 UNSTAGRAM</p>
       </footer>
     </aside>

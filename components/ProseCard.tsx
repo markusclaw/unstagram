@@ -5,7 +5,7 @@ import PostBody from "./PostBody";
 import Caption from "./Caption";
 import CommentList from "./CommentList";
 import { addReply } from "@/app/post/actions";
-import ReportButton from "./ReportButton";
+import PostMenu from "./PostMenu";
 
 function PinIcon() {
   return (
@@ -17,7 +17,7 @@ function PinIcon() {
   );
 }
 
-export default function ProseCard({ post }: { post: FeedPost }) {
+export default function ProseCard({ post, detail = false }: { post: FeedPost; detail?: boolean }) {
   return (
     <article className="border-b border-hairline py-8">
       <div className="mb-3 flex items-center gap-2 text-sm">
@@ -29,7 +29,7 @@ export default function ProseCard({ post }: { post: FeedPost }) {
         </Link>
         <span className="text-ash">·</span>
         <span className="text-ash">{timeAgo(post.createdAt)}</span>
-        <span className="ml-auto"><ReportButton postId={post.id} /></span>
+        <span className="ml-auto"><PostMenu postId={post.id} /></span>
       </div>
 
       {post.location && <p className="mb-3 -mt-1 text-xs text-ash"><PinIcon /> {post.location}</p>}
@@ -39,7 +39,7 @@ export default function ProseCard({ post }: { post: FeedPost }) {
       {post.caption && <Caption text={post.caption} />}
 
 
-      <CommentList replies={post.replies} postId={post.id} />
+      <CommentList replies={post.replies} postId={post.id} total={post.replyCount} detail={detail} />
 
       <form action={addReply} className="mt-4 flex gap-2">
         <input type="hidden" name="postId" value={post.id} />
